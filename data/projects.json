@@ -1,0 +1,31 @@
+[
+  {
+    "id": 1701234567890,
+    "title": "Smart Attendance System",
+    "description": "QR code based self-attendance system with real-time tracking",
+    "technologies": [
+      "React",
+      "Node.js",
+      "MongoDB",
+      "QR Code"
+    ],
+    "github": "https://github.com/dhirajdhakal/smart-attendance",
+    "demo": "https://demo.com",
+    "image": "/uploads/1701234567890-sample.jpg",
+    "featured": true,
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  },
+  {
+    "id": 1772699427761,
+    "title": "First",
+    "description": "hehehehe",
+    "technologies": [
+      "Reacts"
+    ],
+    "github": "https://github.com/Dhiraj98Dhakal/voting-system",
+    "demo": "https://github.com/Dhiraj98Dhakal/voting-system",
+    "image": "/uploads/1772699427745-615982406.jpg",
+    "featured": true,
+    "createdAt": "2026-03-05T08:30:27.761Z"
+  }
+]

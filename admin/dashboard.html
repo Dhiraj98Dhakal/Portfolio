@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Protected</title>
+    
+    <!-- ============================================ -->
+    <!-- CRITICAL SECURITY CHECK - FIXED VERSION -->
+    <!-- ============================================ -->
+    <script>
+        (function() {
+            console.log('🔒 SECURITY CHECK INITIATED');
+            
+            // Get stored values
+            const token = localStorage.getItem('adminToken');
+            const loginTime = localStorage.getItem('adminLoginTime');
+            
+            console.log('📦 Storage check:', { 
+                hasToken: !!token, 
+                hasLoginTime: !!loginTime,
+                tokenPreview: token ? token.substring(0, 20) + '...' : 'none',
+                loginTime: loginTime ? new Date(parseInt(loginTime)).toLocaleString() : 'none'
+            });
+            
+            // Check if token exists
+            if (!token || !loginTime) {
+                console.log('❌ No token or login time found');
+                window.location.replace('/404.html');
+                return;
+            }
+            
+            // Parse login time
+            const loginTimestamp = parseInt(loginTime);
+            
+            // Validate timestamp
+            if (isNaN(loginTimestamp) || loginTimestamp <= 0) {
+                console.log('❌ Invalid login time');
+                localStorage.clear();
+                window.location.replace('/404.html?error=invalid');
+                return;
+            }
+            
+            // Check expiration (24 hours = 24 * 60 * 60 * 1000 milliseconds)
+            const now = Date.now();
+            const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+            const age = now - loginTimestamp;
+            
+            console.log('⏱️ Session age:', Math.round(age / 1000 / 60), 'minutes');
+            
+            if (age > maxAge) {
+                console.log('❌ Session expired');
+                localStorage.clear();
+                window.location.replace('/404.html?error=expired');
+                return;
+            }
+            
+            // FIXED: Token format check - JWT र admin-token- दुवै accept गर्छ
+            if (!token.startsWith('eyJ') && !token.startsWith('admin-token-')) {
+                console.log('❌ Invalid token format');
+                localStorage.clear();
+                window.location.replace('/404.html?error=invalid');
+                return;
+            }
+            
+            console.log('✅ Authentication valid');
+            console.log('⏱️ Session expires in:', Math.round((maxAge - age) / 1000 / 60), 'minutes');
+            
+            // Store session info in window for timer
+            window.sessionStartTime = loginTimestamp;
+            window.sessionMaxAge = maxAge;
+        })();
+
+        
+    </script>
+    <!-- Styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1a1f3a;
+            --light: #f8fafc;
+        }
+
+        body {
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 280px;
+            background: linear-gradient(180deg, var(--dark) 0%, #2a2f4a 100%);
+            color: white;
+            transition: all 0.3s;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: 2px 0 20px rgba(0,0,0,0.1);
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-header h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            white-space: nowrap;
+            color: white;
+        }
+
+        .sidebar-header h3 span {
+            font-size: 0.8rem;
+            display: block;
+            opacity: 0.7;
+            margin-top: 5px;
+            color: #a5b4fc;
+        }
+
+        .toggle-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+
+        .nav-menu {
+            padding: 20px 10px;
+        }
+
+        .nav-item {
+            margin-bottom: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+
+        .nav-link i {
+            width: 30px;
+            font-size: 1.2rem;
+        }
+
+        .nav-link span {
+            margin-left: 10px;
+        }
+
+        .badge {
+            position: absolute;
+            right: 15px;
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .sidebar.collapsed .nav-link span {
+            display: none;
+        }
+
+        .sidebar.collapsed .sidebar-header h3 {
+            display: none;
+        }
+
+        .sidebar.collapsed .badge {
+            right: 5px;
+            font-size: 0.6rem;
+            padding: 2px 5px;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+            transition: all 0.3s;
+            min-height: 100vh;
+        }
+
+        .main-content.expanded {
+            margin-left: 80px;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .page-title h2 {
+            margin: 0;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .page-title p {
+            margin: 5px 0 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .session-timer {
+            background: #f0f2f5;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .session-timer i {
+            color: var(--primary);
+        }
+
+        .timer-warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .timer-danger {
+            color: var(--danger);
+            font-weight: 600;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .logout-btn {
+            padding: 10px 20px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220,53,69,0.3);
+        }
+
+        /* ===== STATS CARDS ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* ===== SECTION CARDS ===== */
+        .section-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .section-header h3 i {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+
+        /* ===== TABLES ===== */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            background: #f8fafc;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #666;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+            font-size: 0.85rem;
+        }
+
+        .view-btn { background: var(--info); }
+        .edit-btn { background: var(--warning); }
+        .delete-btn { background: var(--danger); }
+        .add-btn { background: var(--success); }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        /* ===== FORMS ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-sm { padding: 8px 15px; font-size: 0.85rem; }
+        .btn-block { width: 100%; }
+
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(79,70,229,0.4); }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(16,185,129,0.4); }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(239,68,68,0.4); }
+
+        /* ===== MODAL ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--dark);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-btn:hover {
+            color: var(--danger);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        /* ===== MESSAGE DETAIL ===== */
+        .message-detail {
+            padding: 10px;
+        }
+
+        .detail-row {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-row strong {
+            display: block;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .message-content {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        /* ===== IMAGE PREVIEW ===== */
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 10px;
+            border-radius: 10px;
+            border: 2px solid #f0f0f0;
+            object-fit: cover;
+        }
+
+        .avatar-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+        }
+
+        /* ===== UPLOADS GRID ===== */
+        .uploads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .upload-item {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .upload-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .upload-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .upload-item p {
+            font-size: 0.8rem;
+            word-break: break-all;
+            margin-bottom: 10px;
+        }
+
+        /* ===== MESSAGE FILTERS ===== */
+        .message-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 20px;
+            border: none;
+            background: #f0f2f5;
+            color: #666;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .unread {
+            background: rgba(79,70,229,0.05);
+            font-weight: 500;
+        }
+
+        .unread td:first-child {
+            border-left: 3px solid var(--primary);
+        }
+
+        .badge-danger { background: var(--danger); color: white; padding: 4px 8px; border-radius: 12px; }
+        .badge-success { background: var(--success); color: white; padding: 4px 8px; border-radius: 12px; }
+        .badge-warning { background: var(--warning); color: white; padding: 4px 8px; border-radius: 12px; }
+
+        /* ===== LOADING ===== */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-left: 10px;
+            border: 3px solid var(--primary);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== ALERT ===== */
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 3000;
+            animation: slideInRight 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 400px;
+        }
+
+        .alert.success { background: linear-gradient(135deg, #10b981, #059669); }
+        .alert.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .alert.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .alert.info { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .user-info {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .session-timer {
+                justify-content: center;
+            }
+
+            .logout-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .action-btns {
+                flex-direction: column;
+            }
+
+            .action-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== SIDEBAR ===== -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Admin Panel<br><span id="adminUsername">Loading...</span></h3>
+            <button class="toggle-btn" id="toggleSidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <div class="nav-item">
+    <a href="#" class="nav-link" data-section="testimonials">
+        <i class="fas fa-comment"></i>
+        <span>Testimonials</span>
+    </a>
+</div>
+
+        <div class="nav-menu">
+            <div class="nav-item">
+                <a href="#" class="nav-link active" data-section="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" data-section="profile">
+                    <i class="fas fa-user"></i>
+                    <span>Profile Settings</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" data-section="projects">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>Projects</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" data-section="add-project">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Add Project</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" data-section="skills">
+                    <i class="fas fa-code"></i>
+                    <span>Skills</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" data-section="social">
+                    <i class="fas fa-share-alt"></i>
+                    <span>Social Links</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Site Settings</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" data-section="uploads">
+                    <i class="fas fa-images"></i>
+                    <span>File Manager</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" data-section="messages">
+                    <i class="fas fa-envelope"></i>
+                    <span>Messages</span>
+                    <span class="badge" id="unread-badge" style="display: none;">0</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" data-section="backup">
+                    <i class="fas fa-database"></i>
+                    <span>Backup & Restore</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="main-content" id="mainContent">
+        <!-- Header -->
+        <div class="header">
+            <div class="page-title">
+                <h2 id="pageTitle">Dashboard</h2>
+                <p id="pageDescription">Welcome back! You have full control.</p>
+            </div>
+            <div class="user-info">
+                <div class="session-timer" id="sessionTimer">
+                    <i class="fas fa-clock"></i>
+                    <span id="timerDisplay">Loading session...</span>
+                </div>
+                <button class="logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== DASHBOARD SECTION ===== -->
+        <div id="dashboard-section" class="section">
+            <div class="stats-grid" id="dashboard-stats">
+                <div class="loading">Loading dashboard...</div>
+            </div>
+        </div>
+
+<!-- ===== TESTIMONIALS SECTION ===== -->
+<div id="testimonials-section" class="section" style="display: none;">
+    <div class="section-card">
+        <div class="section-header">
+            <h3><i class="fas fa-comment"></i> Manage Testimonials</h3>
+            <button class="btn btn-success btn-sm" onclick="showAddTestimonialModal()">
+                <i class="fas fa-plus"></i> Add Testimonial
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Position</th>
+                        <th>Company</th>
+                        <th>Rating</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="testimonialsList">
+                    <tr><td colspan="6" class="loading">Loading testimonials...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+        <!-- ===== PROFILE SECTION ===== -->
+        <div id="profile-section" class="section" style="display: none;">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-user-circle"></i> Profile Information</h3>
+                </div>
+
+                <form id="profileForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="profileName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Professional Title</label>
+                            <input type="text" id="profileTitle" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Bio / Description</label>
+                        <textarea id="profileBio" rows="3" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>About Text</label>
+                        <textarea id="profileAboutText" rows="3" required></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="profileEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="text" id="profilePhone" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" id="profileLocation" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Country</label>
+                            <input type="text" id="profileCountry" value="Nepal">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Experience (Years)</label>
+                            <input type="text" id="profileExperience" value="2+">
+                        </div>
+                        <div class="form-group">
+                            <label>Logo Initials</label>
+                            <input type="text" id="profileInitials" value="D" maxlength="2">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Education</label>
+                            <input type="text" id="profileEducation" value="BICTE (2022 - Present)">
+                        </div>
+                        <div class="form-group">
+                            <label>Website</label>
+                            <input type="url" id="profileWebsite" placeholder="https://example.com">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Profile Image</label>
+                            <input type="file" id="profileImage" accept="image/*">
+                            <img id="profileImagePreview" class="avatar-preview" style="display: none;">
+                        </div>
+                        <div class="form-group">
+                            <label>About Section Image</label>
+                            <input type="file" id="aboutImage" accept="image/*">
+                            <img id="aboutImagePreview" class="image-preview" style="display: none;">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== PROJECTS SECTION ===== -->
+        <div id="projects-section" class="section" style="display: none;">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-list"></i> Manage Projects</h3>
+                    <button class="btn btn-success btn-sm" onclick="showSection('add-project')">
+                        <i class="fas fa-plus"></i> New Project
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Technologies</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectsList">
+                            <tr><td colspan="6" class="loading">Loading projects...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ADD PROJECT SECTION ===== -->
+        <div id="add-project-section" class="section" style="display: none;">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-plus-circle"></i> Add New Project</h3>
+                </div>
+
+                <form id="projectForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>Project Title</label>
+                        <input type="text" id="projectTitle" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="projectDescription" rows="3" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Technologies (comma separated)</label>
+                        <input type="text" id="projectTechnologies" placeholder="React, Node.js, MongoDB" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>GitHub URL</label>
+                            <input type="url" id="projectGithub" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Live Demo URL</label>
+                            <input type="url" id="projectDemo" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Project Image</label>
+                        <input type="file" id="projectImage" accept="image/*" required>
+                        <img id="projectImagePreview" class="image-preview" style="display: none;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="projectFeatured">
+                            Feature this project
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Project
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== SKILLS SECTION ===== -->
+        <div id="skills-section" class="section" style="display: none;">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-code"></i> Manage Skills</h3>
+                    <button class="btn btn-success btn-sm" onclick="showAddSkillModal()">
+                        <i class="fas fa-plus"></i> Add Skill
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Icon</th>
+                                <th>Skill Name</th>
+                                <th>Level (%)</th>
+                                <th>Category</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="skillsList">
+                            <tr><td colspan="5" class="loading">Loading skills...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SOCIAL LINKS SECTION ===== -->
+        <div id="social-section" class="section" style="display: none;">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-share-alt"></i> Social Media Links</h3>
+                </div>
+
+                <form id="socialForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fab fa-github"></i> GitHub</label>
+                            <input type="url" id="socialGithub">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fab fa-linkedin"></i> LinkedIn</label>
+                            <input type="url" id="socialLinkedin">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fab fa-twitter"></i> Twitter</label>
+                            <input type="url" id="socialTwitter">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fab fa-instagram"></i> Instagram</label>
+                            <input type="url" id="socialInstagram">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fab fa-facebook"></i> Facebook</label>
+                            <input type="url" id="socialFacebook">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fab fa-youtube"></i> YouTube</label>
+                            <input type="url" id="socialYoutube">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Social Links
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== SETTINGS SECTION ===== -->
+        <div id="settings-section" class="section" style="display: none;">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-cog"></i> Site Settings</h3>
+                </div>
+
+                <form id="settingsForm">
+                    <div class="form-group">
+                        <label>Site Title</label>
+                        <input type="text" id="siteTitle">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Site Description</label>
+                        <textarea id="siteDescription" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Admin Email</label>
+                        <input type="email" id="adminEmail">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Favicon</label>
+                        <input type="file" id="favicon" accept="image/*">
+                        <img id="faviconPreview" class="image-preview" style="display: none;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="maintenanceMode">
+                            Maintenance Mode
+                        </label>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Copyright Text</label>
+                            <input type="text" id="copyrightText" value="All rights reserved">
+                        </div>
+                        <div class="form-group">
+                            <label>Site Language</label>
+                            <select id="siteLanguage">
+                                <option value="en">English</option>
+                                <option value="ne">Nepali</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== UPLOADS SECTION ===== -->
+        <div id="uploads-section" class="section" style="display: none;">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-images"></i> File Manager</h3>
+                </div>
+
+                <div class="uploads-grid" id="uploadsList">
+                    <div class="loading">Loading uploads...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== MESSAGES SECTION ===== -->
+        <div id="messages-section" class="section" style="display: none;">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-envelope"></i> Contact Messages</h3>
+                    <button class="btn btn-info btn-sm" onclick="refreshMessages()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="message-filters">
+                    <button class="filter-btn active" data-message-filter="all">All</button>
+                    <button class="filter-btn" data-message-filter="unread">Unread</button>
+                    <button class="filter-btn" data-message-filter="read">Read</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Subject</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="messagesList">
+                            <tr><td colspan="6" class="loading">Loading messages...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== BACKUP SECTION ===== -->
+        <div id="backup-section" class="section" style="display: none;">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-database"></i> Backup & Restore</h3>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Create Backup</label>
+                        <button class="btn btn-primary btn-block" onclick="backupData()">
+                            <i class="fas fa-download"></i> Download Backup
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Restore from Backup</label>
+                        <input type="file" id="restoreFile" accept=".json">
+                        <button class="btn btn-warning btn-block mt-2" onclick="restoreData()">
+                            <i class="fas fa-upload"></i> Restore
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Last Backup</label>
+                    <p id="lastBackup">Never</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MESSAGE DETAIL MODAL ===== -->
+    <div class="modal" id="messageModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Message Details</h3>
+                <button class="close-btn" onclick="closeMessageModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="messageDetail"></div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="replyToMessage()">
+                    <i class="fas fa-reply"></i> Reply
+                </button>
+                <button class="btn btn-danger" onclick="deleteCurrentMessage()">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                <button class="btn btn-secondary" onclick="closeMessageModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ADD SKILL MODAL ===== -->
+    <div class="modal" id="skillModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Skill</h3>
+                <button class="close-btn" onclick="closeModal('skillModal')">&times;</button>
+            </div>
+
+            <form id="skillForm">
+                <div class="form-group">
+                    <label>Skill Name</label>
+                    <input type="text" id="skillName" required>
+                </div>
+                <div class="form-group">
+                    <label>Level (%)</label>
+                    <input type="number" id="skillLevel" min="0" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label>Icon Class</label>
+                    <input type="text" id="skillIcon" placeholder="fab fa-react" required>
+                </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <input type="color" id="skillColor" value="#4f46e5">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="skillCategory">
+                        <option value="frontend">Frontend</option>
+                        <option value="backend">Backend</option>
+                        <option value="database">Database</option>
+                        <option value="tools">Tools</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Skill</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== EDIT PROJECT MODAL ===== -->
+    <div class="modal" id="editProjectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Project</h3>
+                <button class="close-btn" onclick="closeModal('editProjectModal')">&times;</button>
+            </div>
+            <form id="editProjectForm" enctype="multipart/form-data">
+                <input type="hidden" id="editProjectId">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="editProjectTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editProjectDescription" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Technologies</label>
+                    <input type="text" id="editProjectTechnologies" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>GitHub URL</label>
+                        <input type="url" id="editProjectGithub" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Demo URL</label>
+                        <input type="url" id="editProjectDemo" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>New Image (optional)</label>
+                    <input type="file" id="editProjectImage" accept="image/*">
+                    <img id="editProjectImagePreview" class="image-preview" style="display: none;">
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="editProjectFeatured"> Featured Project</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Project</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== EDIT SKILL MODAL ===== -->
+    <div class="modal" id="editSkillModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Skill</h3>
+                <button class="close-btn" onclick="closeModal('editSkillModal')">&times;</button>
+            </div>
+            <form id="editSkillForm">
+                <input type="hidden" id="editSkillId">
+                <div class="form-group">
+                    <label>Skill Name</label>
+                    <input type="text" id="editSkillName" required>
+                </div>
+                <div class="form-group">
+                    <label>Level (%)</label>
+                    <input type="number" id="editSkillLevel" min="0" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label>Icon Class</label>
+                    <input type="text" id="editSkillIcon" required>
+                </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <input type="color" id="editSkillColor">
+                </div>
+                <button type="submit" class="btn btn-primary">Update Skill</button>
+            </form>
+        </div>
+    </div>
+        <script src="admin.js"></script>
+
+</body>
+</html>

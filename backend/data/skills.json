@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "HTML5",
+    "level": 95,
+    "icon": "fab fa-html5",
+    "color": "#E34F26",
+    "category": "frontend"
+  },
+  {
+    "id": 2,
+    "name": "CSS3",
+    "level": 92,
+    "icon": "fab fa-css3-alt",
+    "color": "#1572B6",
+    "category": "frontend"
+  },
+  {
+    "id": 3,
+    "name": "JavaScript",
+    "level": 88,
+    "icon": "fab fa-js",
+    "color": "#F7DF1E",
+    "category": "frontend"
+  },
+  {
+    "id": 4,
+    "name": "React",
+    "level": 85,
+    "icon": "fab fa-react",
+    "color": "#61DAFB",
+    "category": "frontend"
+  },
+  {
+    "id": 5,
+    "name": "Node.js",
+    "level": 78,
+    "icon": "fab fa-node",
+    "color": "#339933",
+    "category": "backend"
+  }
+]

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Dhiraj Portfolio</title>
+    
+    <!-- Prevent Google Password Manager -->
+    <meta name="google" content="notranslate">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255,255,255,0.05) 0px,
+                rgba(255,255,255,0.05) 20px,
+                transparent 20px,
+                transparent 40px
+            );
+            animation: move 20s linear infinite;
+        }
+
+        @keyframes move {
+            0% { transform: translate(-10%, -10%) rotate(0deg); }
+            100% { transform: translate(-30%, -30%) rotate(10deg); }
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+            z-index: 1;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 10px 30px rgba(102,126,234,0.4);
+        }
+
+        .login-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .input-group .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 42px;
+            color: #667eea;
+            font-size: 1rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 15px 14px 45px;
+            border: 2px solid #e1e1e1;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+        }
+
+        .input-group input::placeholder {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .remember-forgot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .remember {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #666;
+        }
+
+        .remember input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #667eea;
+        }
+
+        .forgot-link {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+
+        .forgot-link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .login-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102,126,234,0.4);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 30px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        .status-text {
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .footer-links a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+            margin: 0 10px;
+        }
+
+        .footer-links a:hover {
+            color: white;
+            text-decoration: underline;
+        }
+
+        .footer-links i {
+            margin-right: 5px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 30px 20px;
+            }
+
+            .login-header h2 {
+                font-size: 1.75rem;
+            }
+
+            .remember-forgot {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h2>Admin Login</h2>
+                <p>Enter your credentials to access dashboard</p>
+            </div>
+
+            <!-- Server Status -->
+            <div class="server-status" id="serverStatus">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">Checking server connection...</span>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="username">
+                        <i class="fas fa-user"></i> Username
+                    </label>
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" id="username" placeholder="Enter username" value="admin" autocomplete="off" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i> Password
+                    </label>
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" id="password" placeholder="Enter password" value="admin123" required>
+                </div>
+
+                <div class="remember-forgot">
+                    <label class="remember">
+                        <input type="checkbox" id="remember" checked>
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-link" onclick="alert('Contact admin for password reset')">
+                        <i class="fas fa-question-circle"></i> Forgot password?
+                    </a>
+                </div>
+
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <span>Login</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+
+                <div id="message" class="message"></div>
+            </form>
+
+            <div class="footer-links">
+                <a href="/" target="_blank">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="#" onclick="alert('Demo Credentials: admin / admin123')">
+                    <i class="fas fa-key"></i> Show Credentials
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        const API_URL = 'https://portfolio-xqwu.onrender.com/api';
+        
+        console.log('✅ Login page loaded');
+        console.log('🔗 API_URL:', API_URL);
+
+        // ============================================
+        // CHECK SERVER CONNECTION
+        // ============================================
+        async function checkServerConnection() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            try {
+                const response = await fetch(`${API_URL}/test`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = '✅ Server Connected';
+                    return true;
+                } else {
+                    throw new Error('Server not responding');
+                }
+            } catch (error) {
+                console.error('Server connection error:', error);
+                statusDot.className = 'status-dot';
+                statusText.textContent = '❌ Server Disconnected';
+                return false;
+            }
+        }
+
+        // ============================================
+        // CHECK IF ALREADY LOGGED IN
+        // ============================================
+        function checkLoggedIn() {
+            const token = localStorage.getItem('adminToken');
+            const loginTime = localStorage.getItem('adminLoginTime');
+            
+            if (token && loginTime) {
+                const age = Date.now() - parseInt(loginTime);
+                const maxAge = 24 * 60 * 60 * 1000;
+                
+                if (age < maxAge) {
+                    console.log('Already logged in - redirecting to dashboard');
+                    window.location.href = 'dashboard.html';
+                } else {
+                    localStorage.clear();
+                }
+            }
+        }
+
+        // ============================================
+        // LOGIN FORM SUBMISSION
+        // ============================================
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const messageDiv = document.getElementById('message');
+            
+            if (!username || !password) {
+                messageDiv.className = 'message error show';
+                messageDiv.textContent = 'Please enter both username and password';
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
+
+            try {
+                console.log('🔐 Login attempt:', { username });
+                
+                const response = await fetch(`${API_URL}/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                console.log('📥 Login response:', data);
+
+                if (data.success) {
+                    localStorage.clear();
+                    
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminLoginTime', Date.now().toString());
+                    localStorage.setItem('adminUser', username);
+                    
+                    console.log('✅ Login successful - Token stored');
+                    
+                    messageDiv.className = 'message success show';
+                    messageDiv.innerHTML = '<i class="fas fa-check-circle"></i> Login successful! Redirecting...';
+
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1000);
+                    
+                } else {
+                    messageDiv.className = 'message error show';
+                    messageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.message || 'Invalid credentials'}`;
+                    
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<span>Login</span> <i class="fas fa-arrow-right"></i>';
+                }
+                
+            } catch (error) {
+                console.error('❌ Login error:', error);
+                
+                messageDiv.className = 'message error show';
+                messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Cannot connect to server. Make sure backend is running.';
+                
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<span>Login</span> <i class="fas fa-arrow-right"></i>';
+            }
+        });
+
+        // ============================================
+        // INITIALIZE ON PAGE LOAD
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Login page initialized');
+            
+            checkLoggedIn();
+            checkServerConnection();
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            
+            if (error === 'expired') {
+                const messageDiv = document.getElementById('message');
+                messageDiv.className = 'message info show';
+                messageDiv.innerHTML = '<i class="fas fa-info-circle"></i> Session expired. Please login again.';
+            } else if (error === 'unauthorized') {
+                const messageDiv = document.getElementById('message');
+                messageDiv.className = 'message error show';
+                messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please login to access the dashboard.';
+            } else if (error === 'logout') {
+                const messageDiv = document.getElementById('message');
+                messageDiv.className = 'message success show';
+                messageDiv.innerHTML = '<i class="fas fa-check-circle"></i> Logged out successfully.';
+            }
+        });
+    </script>
+</body>
+</html>
