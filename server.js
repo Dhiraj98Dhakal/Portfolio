@@ -23,12 +23,48 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// MIDDLEWARE
+// CORS MIDDLEWARE - COMPLETELY FIXED
 // ============================================
+const allowedOrigins = [
+    'http://localhost:3001',
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+    'http://localhost:3000',
+    'https://dhiraj-profile.netlify.app',
+    /\.netlify\.app$/  // Regex pattern for all Netlify domains
+];
+
+// Global CORS middleware
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://127.0.0.1:5500', 'http://localhost:5500', 'http://localhost:3000'],
-    credentials: true
+    origin: function(origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl)
+        if (!origin) return callback(null, true);
+        
+        // Check if origin is allowed
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (allowed instanceof RegExp) {
+                return allowed.test(origin);
+            }
+            return allowed === origin;
+        });
+
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            console.log('❌ Blocked by CORS:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
+
+// Handle preflight requests - यो धेरै महत्त्वपूर्ण छ
+app.options('*', cors());
+
+// Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -96,6 +132,95 @@ const upload = multer({
             cb(new Error('Only image files are allowed'));
         }
     }
+});
+
+// ============================================
+// AUTHENTICATION MIDDLEWARE
+// ============================================
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({
+            success: false,
+            message: 'No token provided'
+        });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({
+                success: false,
+                message: 'Invalid or expired token'
+            });
+        }
+        req.user = user;
+        next();
+    });
+};
+
+// ============================================
+// ROOT ROUTE - FIXED WITH CORS HEADERS
+// ============================================
+app.get('/', (req, res) => {
+    // Set CORS headers explicitly
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    res.json({
+        success: true,
+        message: '🚀 Backend API is running',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        endpoints: {
+            test: '/api/test',
+            profile: '/api/profile',
+            projects: '/api/projects',
+            skills: '/api/skills',
+            messages: '/api/messages',
+            settings: '/api/settings',
+            uploads: '/api/uploads',
+            backup: '/api/backup',
+            admin_login: '/api/admin/login'
+        },
+        frontend: 'https://dhiraj-profile.netlify.app',
+        admin: 'https://dhiraj-profile.netlify.app/admin'
+    });
+});
+
+// ============================================
+// TEST ROUTE - FIXED WITH CORS HEADERS
+// ============================================
+app.get('/api/test', (req, res) => {
+    // Set CORS headers explicitly
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    res.json({
+        success: true,
+        message: 'Server is running!',
+        timestamp: new Date().toISOString(),
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        cors: 'enabled',
+        frontend: 'https://dhiraj-profile.netlify.app',
+        endpoints: [
+            '/api/profile',
+            '/api/projects',
+            '/api/skills',
+            '/api/messages',
+            '/api/settings',
+            '/api/uploads',
+            '/api/backup',
+            '/api/admin/login',
+            '/api/test'
+        ]
+    });
 });
 
 // ============================================
@@ -211,33 +336,7 @@ async function initializeData() {
 }
 
 // ============================================
-// AUTHENTICATION MIDDLEWARE
-// ============================================
-const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({
-            success: false,
-            message: 'No token provided'
-        });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({
-                success: false,
-                message: 'Invalid or expired token'
-            });
-        }
-        req.user = user;
-        next();
-    });
-};
-
-// ============================================
-// ADMIN LOGIN - FIXED VERSION
+// ADMIN LOGIN
 // ============================================
 app.post('/api/admin/login', (req, res) => {
     const { username, password } = req.body;
@@ -245,7 +344,6 @@ app.post('/api/admin/login', (req, res) => {
     console.log('🔐 Login attempt:', { username });
 
     if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
-        // Generate token with timestamp
         const token = jwt.sign(
             { 
                 username,
@@ -299,7 +397,6 @@ app.put('/api/profile', authenticateToken, upload.fields([
             profile = new Profile();
         }
 
-        // Update text fields
         const textFields = [
             'name', 'title', 'bio', 'aboutText', 'email', 'phone',
             'location', 'country', 'experience', 'initials', 'education',
@@ -312,57 +409,30 @@ app.put('/api/profile', authenticateToken, upload.fields([
             }
         });
 
-        // Update stats
         if (req.body.stats) {
             try {
                 profile.stats = JSON.parse(req.body.stats);
-            } catch (e) {
-                console.log('Stats parse error:', e);
-            }
+            } catch (e) {}
         }
 
-        // Update social links
         if (req.body.socialLinks) {
             try {
                 profile.socialLinks = new Map(Object.entries(JSON.parse(req.body.socialLinks)));
-            } catch (e) {
-                console.log('Social links parse error:', e);
-            }
+            } catch (e) {}
         }
 
-        // Update profile image
         if (req.files && req.files.profileImage) {
-            if (profile.profileImage) {
-                const oldImagePath = path.join(uploadsDir, path.basename(profile.profileImage));
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
-                }
-            }
             profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
         }
 
-        // Update about image
         if (req.files && req.files.aboutImage) {
-            if (profile.aboutImage) {
-                const oldImagePath = path.join(uploadsDir, path.basename(profile.aboutImage));
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
-                }
-            }
             profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
         }
 
         await profile.save();
-        res.json({
-            success: true,
-            message: 'Profile updated successfully',
-            profile
-        });
+        res.json({ success: true, message: 'Profile updated successfully', profile });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -374,10 +444,7 @@ app.get('/api/projects', async (req, res) => {
         const projects = await Project.find().sort('-createdAt');
         res.json(projects);
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -385,17 +452,11 @@ app.get('/api/projects/:id', async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
         if (!project) {
-            return res.status(404).json({
-                success: false,
-                message: 'Project not found'
-            });
+            return res.status(404).json({ success: false, message: 'Project not found' });
         }
         res.json(project);
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -412,16 +473,9 @@ app.post('/api/projects', authenticateToken, upload.single('image'), async (req,
         });
 
         await newProject.save();
-        res.status(201).json({
-            success: true,
-            message: 'Project added successfully',
-            project: newProject
-        });
+        res.status(201).json({ success: true, message: 'Project added successfully', project: newProject });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -429,10 +483,7 @@ app.put('/api/projects/:id', authenticateToken, upload.single('image'), async (r
     try {
         const project = await Project.findById(req.params.id);
         if (!project) {
-            return res.status(404).json({
-                success: false,
-                message: 'Project not found'
-            });
+            return res.status(404).json({ success: false, message: 'Project not found' });
         }
 
         project.title = req.body.title || project.title;
@@ -440,59 +491,25 @@ app.put('/api/projects/:id', authenticateToken, upload.single('image'), async (r
         project.technologies = req.body.technologies ? req.body.technologies.split(',').map(t => t.trim()) : project.technologies;
         project.github = req.body.github || project.github;
         project.demo = req.body.demo || project.demo;
-        project.featured = req.body.featured === 'true' ? true : (req.body.featured === 'false' ? false : project.featured);
+        project.featured = req.body.featured === 'true' ? true : false;
 
         if (req.file) {
-            if (project.image) {
-                const oldImagePath = path.join(uploadsDir, path.basename(project.image));
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
-                }
-            }
             project.image = `/uploads/${req.file.filename}`;
         }
 
         await project.save();
-        res.json({
-            success: true,
-            message: 'Project updated successfully',
-            project
-        });
+        res.json({ success: true, message: 'Project updated successfully', project });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
-        if (!project) {
-            return res.status(404).json({
-                success: false,
-                message: 'Project not found'
-            });
-        }
-
-        if (project.image) {
-            const imagePath = path.join(uploadsDir, path.basename(project.image));
-            if (fs.existsSync(imagePath)) {
-                fs.unlinkSync(imagePath);
-            }
-        }
-
         await Project.findByIdAndDelete(req.params.id);
-        res.json({
-            success: true,
-            message: 'Project deleted successfully'
-        });
+        res.json({ success: true, message: 'Project deleted successfully' });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -504,88 +521,35 @@ app.get('/api/skills', async (req, res) => {
         const skills = await Skill.find().sort('-level');
         res.json(skills);
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.post('/api/skills', authenticateToken, async (req, res) => {
     try {
-        const newSkill = new Skill({
-            name: req.body.name,
-            level: parseInt(req.body.level),
-            icon: req.body.icon,
-            color: req.body.color || '#4f46e5',
-            category: req.body.category || 'general'
-        });
-
+        const newSkill = new Skill(req.body);
         await newSkill.save();
-        res.status(201).json({
-            success: true,
-            skill: newSkill
-        });
+        res.status(201).json({ success: true, skill: newSkill });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.put('/api/skills/:id', authenticateToken, async (req, res) => {
     try {
-        const skill = await Skill.findByIdAndUpdate(
-            req.params.id,
-            {
-                name: req.body.name,
-                level: parseInt(req.body.level),
-                icon: req.body.icon,
-                color: req.body.color,
-                category: req.body.category
-            },
-            { new: true }
-        );
-
-        if (!skill) {
-            return res.status(404).json({
-                success: false,
-                message: 'Skill not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            skill
-        });
+        const skill = await Skill.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json({ success: true, skill });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.delete('/api/skills/:id', authenticateToken, async (req, res) => {
     try {
-        const skill = await Skill.findByIdAndDelete(req.params.id);
-        if (!skill) {
-            return res.status(404).json({
-                success: false,
-                message: 'Skill not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Skill deleted successfully'
-        });
+        await Skill.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: 'Skill deleted successfully' });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -594,25 +558,11 @@ app.delete('/api/skills/:id', authenticateToken, async (req, res) => {
 // ============================================
 app.post('/api/messages', async (req, res) => {
     try {
-        const newMessage = new Message({
-            name: req.body.name,
-            email: req.body.email,
-            subject: req.body.subject || 'No Subject',
-            message: req.body.message,
-            ip: req.ip || req.connection.remoteAddress,
-            userAgent: req.get('User-Agent')
-        });
-
+        const newMessage = new Message(req.body);
         await newMessage.save();
-        res.status(201).json({
-            success: true,
-            message: 'Your message has been sent successfully!'
-        });
+        res.status(201).json({ success: true, message: 'Message sent successfully!' });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -621,211 +571,60 @@ app.get('/api/messages', authenticateToken, async (req, res) => {
         const messages = await Message.find().sort('-createdAt');
         res.json(messages);
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// ============================================
-// MESSAGES API - VERIFY THESE ROUTES EXIST
-// ============================================
-
-// Get all messages (admin only)
-app.get('/api/messages', authenticateToken, async (req, res) => {
-    try {
-        const messages = await Message.find().sort('-createdAt');
-        console.log(`📧 Found ${messages.length} messages`);
-        res.json(messages);
-    } catch (error) {
-        console.error('Error fetching messages:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
-
-// Get single message
-app.get('/api/messages/:id', authenticateToken, async (req, res) => {
-    try {
-        const message = await Message.findById(req.params.id);
-        if (!message) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Message not found' 
-            });
-        }
-        res.json(message);
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
-
-// Get unread count
 app.get('/api/messages/unread/count', authenticateToken, async (req, res) => {
     try {
         const count = await Message.countDocuments({ read: false });
         res.json({ count });
     } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Mark message as read
 app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     try {
-        const message = await Message.findByIdAndUpdate(
-            req.params.id,
-            { read: true },
-            { new: true }
-        );
-        if (!message) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Message not found' 
-            });
-        }
-        res.json({ 
-            success: true, 
-            message: 'Message marked as read' 
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
-
-// Delete message
-app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
-    try {
-        const message = await Message.findByIdAndDelete(req.params.id);
-        if (!message) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Message not found' 
-            });
-        }
-        res.json({ 
-            success: true, 
-            message: 'Message deleted successfully' 
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
-
-const Testimonial = require('./models/Testimonial');
-
-// Get all testimonials
-app.get('/api/testimonials', async (req, res) => {
-    try {
-        const testimonials = await Testimonial.find().sort('-createdAt');
-        res.json(testimonials);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Add testimonial (admin only)
-app.post('/api/testimonials', authenticateToken, async (req, res) => {
-    try {
-        const testimonial = new Testimonial(req.body);
-        await testimonial.save();
-        res.status(201).json({ success: true, testimonial });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Update testimonial (admin only)
-app.put('/api/testimonials/:id', authenticateToken, async (req, res) => {
-    try {
-        const testimonial = await Testimonial.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        );
-        res.json({ success: true, testimonial });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Delete testimonial (admin only)
-app.delete('/api/testimonials/:id', authenticateToken, async (req, res) => {
-    try {
-        await Testimonial.findByIdAndDelete(req.params.id);
+        await Message.findByIdAndUpdate(req.params.id, { read: true });
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
+
+app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
+    try {
+        await Message.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============================================
 // SETTINGS API
 // ============================================
 app.get('/api/settings', async (req, res) => {
     try {
         let settings = await Settings.findOne();
-        if (!settings) {
-            settings = await Settings.create({});
-        }
+        if (!settings) settings = await Settings.create({});
         res.json(settings);
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-app.put('/api/settings', authenticateToken, upload.single('favicon'), async (req, res) => {
+app.put('/api/settings', authenticateToken, async (req, res) => {
     try {
         let settings = await Settings.findOne();
-        if (!settings) {
-            settings = new Settings();
-        }
-
-        settings.siteTitle = req.body.siteTitle || settings.siteTitle;
-        settings.siteDescription = req.body.siteDescription || settings.siteDescription;
-        settings.adminEmail = req.body.adminEmail || settings.adminEmail;
-        settings.maintenanceMode = req.body.maintenanceMode === 'true';
-        settings.copyrightText = req.body.copyrightText || settings.copyrightText;
-        settings.siteLanguage = req.body.siteLanguage || settings.siteLanguage;
-
-        if (req.file) {
-            if (settings.favicon) {
-                const oldFaviconPath = path.join(uploadsDir, path.basename(settings.favicon));
-                if (fs.existsSync(oldFaviconPath)) {
-                    fs.unlinkSync(oldFaviconPath);
-                }
-            }
-            settings.favicon = `/uploads/${req.file.filename}`;
-        }
-
+        if (!settings) settings = new Settings();
+        
+        Object.assign(settings, req.body);
         await settings.save();
-        res.json({
-            success: true,
-            message: 'Settings updated successfully',
-            settings
-        });
+        res.json({ success: true, settings });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -834,30 +633,18 @@ app.put('/api/settings', authenticateToken, upload.single('favicon'), async (req
 // ============================================
 app.get('/api/uploads', authenticateToken, (req, res) => {
     fs.readdir(uploadsDir, (err, files) => {
-        if (err) {
-            return res.status(500).json({
-                success: false,
-                error: err.message
-            });
-        }
+        if (err) return res.status(500).json({ success: false, error: err.message });
         res.json({ files });
     });
 });
 
 app.delete('/api/uploads/:filename', authenticateToken, (req, res) => {
     const filepath = path.join(uploadsDir, req.params.filename);
-
     if (fs.existsSync(filepath)) {
         fs.unlinkSync(filepath);
-        res.json({
-            success: true,
-            message: 'File deleted successfully'
-        });
+        res.json({ success: true });
     } else {
-        res.status(404).json({
-            success: false,
-            message: 'File not found'
-        });
+        res.status(404).json({ success: false, message: 'File not found' });
     }
 });
 
@@ -875,69 +662,30 @@ app.get('/api/backup', authenticateToken, async (req, res) => {
         };
         res.json(backup);
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.post('/api/restore', authenticateToken, async (req, res) => {
     try {
         const backup = req.body;
-
-        if (!backup.profile || !backup.projects || !backup.skills || !backup.settings) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid backup file'
-            });
-        }
-
+        
         await Profile.deleteMany({});
         await Profile.create(backup.profile);
-
+        
         await Project.deleteMany({});
         await Project.insertMany(backup.projects);
-
+        
         await Skill.deleteMany({});
         await Skill.insertMany(backup.skills);
-
+        
         await Settings.deleteMany({});
         await Settings.create(backup.settings);
-
-        res.json({
-            success: true,
-            message: 'Data restored successfully'
-        });
+        
+        res.json({ success: true, message: 'Data restored successfully' });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
-});
-
-// ============================================
-// TEST ROUTE
-// ============================================
-app.get('/api/test', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Server is running!',
-        timestamp: new Date().toISOString(),
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        endpoints: [
-            '/api/profile',
-            '/api/projects',
-            '/api/skills',
-            '/api/messages',
-            '/api/settings',
-            '/api/uploads',
-            '/api/backup',
-            '/api/admin/login',
-            '/api/test'
-        ]
-    });
 });
 
 // ============================================
@@ -950,12 +698,24 @@ app.use(express.static(path.join(__dirname, '..')));
 // ============================================
 app.use('*', (req, res) => {
     if (req.originalUrl.startsWith('/api/')) {
-        res.status(404).json({
-            success: false,
-            message: 'API endpoint not found'
-        });
+        res.status(404).json({ success: false, message: 'API endpoint not found' });
     } else {
-        res.sendFile(path.join(__dirname, '../404.html'));
+        const frontend404Path = path.join(__dirname, '../404.html');
+        if (fs.existsSync(frontend404Path)) {
+            res.sendFile(frontend404Path);
+        } else {
+            res.status(404).send(`
+                <!DOCTYPE html>
+                <html>
+                <head><title>404 Not Found</title></head>
+                <body>
+                    <h1>404 - Page Not Found</h1>
+                    <p>The page you are looking for does not exist.</p>
+                    <a href="/">Go to API</a>
+                </body>
+                </html>
+            `);
+        }
     }
 });
 
@@ -964,16 +724,13 @@ app.use('*', (req, res) => {
 // ============================================
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
-    res.status(500).json({
-        success: false,
-        message: err.message || 'Internal server error'
-    });
+    res.status(500).json({ success: false, message: err.message || 'Internal server error' });
 });
 
 // ============================================
 // START SERVER
 // ============================================
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(60));
     console.log('✅ SERVER STARTED SUCCESSFULLY');
     console.log('='.repeat(60));
@@ -984,7 +741,7 @@ app.listen(PORT, () => {
     console.log(`📁 Uploads Directory: ${uploadsDir}`);
     console.log('='.repeat(60));
     console.log('🔐 Admin Login:');
-    console.log(`   Username: ${process.env.ADMIN_USERNAME}`);
-    console.log(`   Password: ${process.env.ADMIN_PASSWORD}`);
+    console.log(`   Username: ${process.env.ADMIN_USERNAME || 'admin'}`);
+    console.log(`   Password: ${process.env.ADMIN_PASSWORD || 'admin123'}`);
     console.log('='.repeat(60) + '\n');
 });
