@@ -1,113 +1,59 @@
-// admin.js - Complete Admin Panel with Fixed Session Management
+// admin.js - Complete Admin Panel with Anime Theme Support
 // ============================================
 // CONFIGURATION
 // ============================================
 const API_URL = 'https://portfolio-xqwu.onrender.com/api';
 const BASE_URL = 'https://portfolio-xqwu.onrender.com';
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 
-console.log('✅ Admin JS Loaded with API_URL:', API_URL);
-console.log('✅ BASE_URL:', BASE_URL);
+console.log('✨ Admin JS Loaded with API_URL:', API_URL);
+console.log('✨ BASE_URL:', BASE_URL);
 
 // ============================================
 // SECURITY CHECK FUNCTIONS
 // ============================================
 
-/**
- * Check if user is authenticated
- * @returns {boolean} - true if authenticated, false otherwise
- */
 function checkAuth() {
     const token = localStorage.getItem('adminToken');
     const loginTime = localStorage.getItem('adminLoginTime');
     
     console.log('🔐 Auth Check:', {
         hasToken: !!token,
-        hasLoginTime: !!loginTime,
-        tokenPreview: token ? token.substring(0, 20) + '...' : 'none',
-        loginTime: loginTime ? new Date(parseInt(loginTime)).toLocaleString() : 'none'
+        hasLoginTime: !!loginTime
     });
     
-    if (!token || !loginTime) {
-        console.log('❌ No token or login time found');
-        return false;
-    }
+    if (!token || !loginTime) return false;
     
     const loginTimestamp = parseInt(loginTime);
-    if (isNaN(loginTimestamp) || loginTimestamp <= 0) {
-        console.log('❌ Invalid login time');
-        return false;
-    }
+    if (isNaN(loginTimestamp) || loginTimestamp <= 0) return false;
     
     const now = Date.now();
-    const timeDiff = now - loginTimestamp;
+    if (now - loginTimestamp > SESSION_TIMEOUT) return false;
     
-    if (timeDiff > SESSION_TIMEOUT) {
-        console.log('❌ Session expired');
-        return false;
-    }
-    
-    console.log('✅ Authentication valid');
-    console.log('⏱️ Session age:', Math.round(timeDiff / 1000 / 60), 'minutes');
     return true;
 }
 
-/**
- * Redirect to login page with error message
- * @param {string} error - Error type
- */
 function redirectToLogin(error = 'unauthorized') {
     console.log(`🔄 Redirecting to login: ${error}`);
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminLoginTime');
-    localStorage.removeItem('adminUser');
+    localStorage.clear();
     window.location.replace(`index.html?error=${error}`);
 }
 
-// ============================================
-// INITIAL SECURITY CHECK
-// ============================================
+// Initial Security Check
 (function() {
     console.log('🚀 Admin Dashboard Loading...');
     
-    const token = localStorage.getItem('adminToken');
-    const loginTime = localStorage.getItem('adminLoginTime');
-    
-    console.log('📦 Initial check:', { 
-        hasToken: !!token, 
-        hasLoginTime: !!loginTime,
-        loginTimeValue: loginTime ? new Date(parseInt(loginTime)).toLocaleString() : 'none'
-    });
-    
-    // Don't redirect if on login page
-    if (window.location.pathname.includes('index.html') || window.location.pathname === '/admin/') {
-        console.log('📍 On login page, skipping auth check');
-        return;
-    }
-    
-    if (!token || !loginTime) {
-        console.log('❌ No token or login time found - redirecting');
-        redirectToLogin('unauthorized');
-        return;
-    }
-    
-    if (!checkAuth()) {
-        redirectToLogin('session_expired');
-    } else {
-        console.log('✅ Authentication passed');
+    if (window.location.pathname.includes('dashboard.html')) {
+        if (!checkAuth()) {
+            redirectToLogin('session_expired');
+        }
     }
 })();
 
 // ============================================
-// API HELPER WITH AUTH
+// API HELPER
 // ============================================
 
-/**
- * Fetch with authentication token
- * @param {string} url - API endpoint
- * @param {Object} options - Fetch options
- * @returns {Promise} - Fetch response
- */
 async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('adminToken');
     
@@ -127,7 +73,7 @@ async function fetchWithAuth(url, options = {}) {
         const response = await fetch(url, { ...defaultOptions, ...options });
         
         if (response.status === 401) {
-            console.log('❌ API returned 401 - session invalid');
+            console.log('❌ Session invalid');
             redirectToLogin('session_expired');
             throw new Error('Session expired');
         }
@@ -143,11 +89,6 @@ async function fetchWithAuth(url, options = {}) {
 // UTILITY FUNCTIONS
 // ============================================
 
-/**
- * Show alert message
- * @param {string} message - Message to display
- * @param {string} type - Alert type
- */
 function showAlert(message, type = 'success') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert ${type}`;
@@ -164,33 +105,29 @@ function showAlert(message, type = 'success') {
         top: 20px;
         right: 20px;
         padding: 15px 25px;
-        background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' :
-                      type === 'error' ? 'linear-gradient(135deg, #ef4444, #dc2626)' :
-                      type === 'warning' ? 'linear-gradient(135deg, #f59e0b, #d97706)' :
-                      'linear-gradient(135deg, #3b82f6, #2563eb)'};
+        background: ${type === 'success' ? 'linear-gradient(135deg, #ff6b9d, #c06bff)' :
+                      type === 'error' ? 'linear-gradient(135deg, #ff4d4d, #ff0066)' :
+                      type === 'warning' ? 'linear-gradient(135deg, #ffdb6b, #ff9f6b)' :
+                      'linear-gradient(135deg, #6bc4ff, #c06bff)'};
         color: white;
-        border-radius: 10px;
+        border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         z-index: 9999;
         display: flex;
         align-items: center;
         gap: 10px;
         animation: slideIn 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+        border: 2px solid white;
     `;
     
     document.body.appendChild(alertDiv);
     
     setTimeout(() => {
-        alertDiv.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => alertDiv.remove(), 300);
+        alertDiv.remove();
     }, 3000);
 }
 
-/**
- * Format date
- * @param {string} dateString - ISO date string
- * @returns {string} - Formatted date
- */
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -203,20 +140,6 @@ function formatDate(dateString) {
     });
 }
 
-/**
- * Confirm action
- * @param {string} message - Confirmation message
- * @returns {boolean} - User confirmation
- */
-function confirmAction(message = 'Are you sure?') {
-    return confirm(message);
-}
-
-/**
- * Escape HTML to prevent XSS
- * @param {string} text - Text to escape
- * @returns {string} - Escaped text
- */
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -224,21 +147,11 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-/**
- * Set input value
- * @param {string} id - Element ID
- * @param {string} value - Value to set
- */
 function setValue(id, value) {
     const el = document.getElementById(id);
     if (el) el.value = value || '';
 }
 
-/**
- * Show image preview
- * @param {string} id - Preview element ID
- * @param {string} src - Image source
- */
 function showImagePreview(id, src) {
     const preview = document.getElementById(id);
     if (preview) {
@@ -246,43 +159,6 @@ function showImagePreview(id, src) {
         preview.style.display = 'block';
     }
 }
-
-// ============================================
-// LOGIN FUNCTION
-// ============================================
-window.login = async function(username, password) {
-    try {
-        console.log('🔐 Attempting login...');
-        
-        const response = await fetch(`${API_URL}/admin/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, password })
-        });
-        
-        const data = await response.json();
-        console.log('📥 Login response:', data);
-        
-        if (data.success) {
-            localStorage.setItem('adminToken', data.token);
-            localStorage.setItem('adminLoginTime', Date.now().toString());
-            localStorage.setItem('adminUser', username);
-            
-            console.log('✅ Login successful, redirecting...');
-            window.location.href = 'dashboard.html';
-            return true;
-        } else {
-            showAlert(data.message || 'Login failed', 'error');
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ Login error:', error);
-        showAlert('Cannot connect to server. Make sure backend is running.', 'error');
-        return false;
-    }
-};
 
 // ============================================
 // SIDEBAR TOGGLE
@@ -306,10 +182,6 @@ const sections = document.querySelectorAll('.section');
 const pageTitle = document.getElementById('pageTitle');
 const pageDescription = document.getElementById('pageDescription');
 
-/**
- * Show specific section
- * @param {string} sectionId - Section ID to show
- */
 window.showSection = function(sectionId) {
     sections.forEach(s => s.style.display = 'none');
     
@@ -321,32 +193,33 @@ window.showSection = function(sectionId) {
     if (activeLink) activeLink.classList.add('active');
     
     const titles = {
-        'dashboard': { title: 'Dashboard', desc: 'Overview of your portfolio' },
-        'profile': { title: 'Profile Settings', desc: 'Manage your personal information' },
-        'projects': { title: 'Projects', desc: 'Manage your projects' },
-        'add-project': { title: 'Add Project', desc: 'Create a new project' },
-        'skills': { title: 'Skills', desc: 'Manage your skills' },
-        'social': { title: 'Social Links', desc: 'Update your social media links' },
-        'settings': { title: 'Site Settings', desc: 'Configure your website' },
-        'uploads': { title: 'File Manager', desc: 'Manage uploaded files' },
-        'backup': { title: 'Backup & Restore', desc: 'Backup and restore your data' },
-        'analytics': { title: 'Analytics', desc: 'View site statistics' },
-        'messages': { title: 'Messages', desc: 'View contact form messages' }
+        'dashboard': { title: '🌸 Dashboard', desc: 'Welcome back, Admin-chan!' },
+        'profile': { title: '👤 Profile', desc: 'Manage your kawaii profile' },
+        'projects': { title: '📁 Projects', desc: 'Your awesome projects' },
+        'add-project': { title: '✨ New Project', desc: 'Create something amazing' },
+        'skills': { title: '⚡ Skills', desc: 'Your superpowers' },
+        'social': { title: '💖 Social Links', desc: 'Connect with the world' },
+        'testimonials': { title: '⭐ Testimonials', desc: 'What people say about you' },
+        'settings': { title: '⚙️ Settings', desc: 'Customize your site' },
+        'uploads': { title: '🖼️ Gallery', desc: 'Your uploaded images' },
+        'messages': { title: '📧 Messages', desc: 'Fan mail from your admirers' },
+        'backup': { title: '💾 Backup', desc: 'Save your data safely' }
     };
     
     if (pageTitle) pageTitle.textContent = titles[sectionId]?.title || 'Dashboard';
     if (pageDescription) pageDescription.textContent = titles[sectionId]?.desc || '';
     
+    // Load section data
     switch(sectionId) {
         case 'dashboard': loadDashboard(); break;
         case 'profile': loadProfile(); break;
         case 'projects': loadProjects(); break;
         case 'skills': loadSkills(); break;
         case 'social': loadSocialLinks(); break;
+        case 'testimonials': loadTestimonials(); break;
         case 'settings': loadSettings(); break;
         case 'uploads': loadUploads(); break;
         case 'messages': loadMessages(); break;
-        case 'analytics': loadAnalytics(); break;
         case 'backup': loadBackupInfo(); break;
     }
 };
@@ -366,20 +239,25 @@ async function loadDashboard() {
     const statsContainer = document.getElementById('dashboard-stats');
     if (!statsContainer) return;
     
-    statsContainer.innerHTML = '<div class="loading">Loading stats...</div>';
+    statsContainer.innerHTML = '<div class="loading">Loading kawaii data...</div>';
     
     try {
-        const projectsRes = await fetch(`${API_URL}/projects`).catch(() => ({ json: () => [] }));
-        const skillsRes = await fetch(`${API_URL}/skills`).catch(() => ({ json: () => [] }));
+        const [projectsRes, skillsRes, messagesRes] = await Promise.all([
+            fetch(`${API_URL}/projects`).catch(() => ({ json: () => [] })),
+            fetch(`${API_URL}/skills`).catch(() => ({ json: () => [] })),
+            fetchWithAuth(`${API_URL}/messages`).catch(() => ({ json: () => [] }))
+        ]);
         
         const projects = await projectsRes.json().catch(() => []);
         const skills = await skillsRes.json().catch(() => []);
+        const messages = await messagesRes.json().catch(() => []);
         
         const featuredCount = projects.filter(p => p.featured).length;
+        const unreadCount = messages.filter(m => !m.read).length;
         
         statsContainer.innerHTML = `
             <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-project-diagram"></i></div>
+                <div class="stat-icon"><i class="fas fa-folder-open"></i></div>
                 <div class="stat-value">${projects.length}</div>
                 <div class="stat-label">Total Projects</div>
             </div>
@@ -392,6 +270,11 @@ async function loadDashboard() {
                 <div class="stat-icon"><i class="fas fa-code"></i></div>
                 <div class="stat-value">${skills.length}</div>
                 <div class="stat-label">Skills</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-envelope"></i></div>
+                <div class="stat-value">${unreadCount}</div>
+                <div class="stat-label">Unread Messages</div>
             </div>
         `;
     } catch (error) {
@@ -409,12 +292,12 @@ async function loadProfile() {
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
 
-        setValue('profileName', profile.name);
-        setValue('profileTitle', profile.title);
-        setValue('profileBio', profile.bio);
-        setValue('profileEmail', profile.email);
-        setValue('profilePhone', profile.phone);
-        setValue('profileLocation', profile.location);
+        setValue('profileName', profile.name || '');
+        setValue('profileTitle', profile.title || '');
+        setValue('profileBio', profile.bio || '');
+        setValue('profileEmail', profile.email || '');
+        setValue('profilePhone', profile.phone || '');
+        setValue('profileLocation', profile.location || '');
         setValue('profileCountry', profile.country || 'Nepal');
         setValue('profileExperience', profile.experience || '2+');
         setValue('profileInitials', profile.initials || 'D');
@@ -431,7 +314,6 @@ async function loadProfile() {
     }
 }
 
-// Profile form submit
 document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -449,6 +331,11 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
     const aboutImage = document.getElementById('aboutImage')?.files[0];
     if (aboutImage) formData.append('aboutImage', aboutImage);
 
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    submitBtn.disabled = true;
+
     try {
         const response = await fetchWithAuth(`${API_URL}/profile`, {
             method: 'PUT',
@@ -457,11 +344,14 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Profile updated successfully!');
+            showAlert('Profile updated successfully! ✨');
             loadProfile();
         }
     } catch (error) {
         showAlert('Error updating profile', 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 });
 
@@ -521,8 +411,8 @@ async function loadProjects() {
                 <td>${escapeHtml(p.description?.substring(0, 50))}${p.description?.length > 50 ? '...' : ''}</td>
                 <td>${p.technologies?.slice(0,2).join(', ') || ''}${p.technologies?.length > 2 ? '...' : ''}</td>
                 <td>
-                    <span class="badge ${p.featured ? 'badge-success' : 'badge-warning'}">
-                        ${p.featured ? 'Featured' : 'Regular'}
+                    <span class="badge" style="background: ${p.featured ? '#ff6b9d' : '#c06bff'}">
+                        ${p.featured ? '⭐ Featured' : '✨ Regular'}
                     </span>
                 </td>
                 <td class="action-btns">
@@ -541,7 +431,6 @@ async function loadProjects() {
     }
 }
 
-// Project form submit
 document.getElementById('projectForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -570,7 +459,7 @@ document.getElementById('projectForm')?.addEventListener('submit', async (e) => 
         const data = await response.json();
         
         if (data.success) {
-            showAlert('Project added successfully!');
+            showAlert('Project added successfully! ✨');
             e.target.reset();
             document.getElementById('projectImagePreview').style.display = 'none';
             showSection('projects');
@@ -584,7 +473,6 @@ document.getElementById('projectForm')?.addEventListener('submit', async (e) => 
     }
 });
 
-// Project image preview
 document.getElementById('projectImage')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
@@ -632,7 +520,6 @@ window.editProject = async function(id) {
     }
 };
 
-// Edit project form submit
 document.getElementById('editProjectForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -656,7 +543,7 @@ document.getElementById('editProjectForm')?.addEventListener('submit', async (e)
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Project updated successfully!');
+            showAlert('Project updated successfully! ✨');
             closeModal('editProjectModal');
             loadProjects();
         }
@@ -666,7 +553,7 @@ document.getElementById('editProjectForm')?.addEventListener('submit', async (e)
 });
 
 window.deleteProject = async function(id) {
-    if (!confirmAction('Delete this project?')) return;
+    if (!confirm('Delete this project?')) return;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/projects/${id}`, {
@@ -675,7 +562,7 @@ window.deleteProject = async function(id) {
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Project deleted successfully!');
+            showAlert('Project deleted successfully!', 'success');
             loadProjects();
         }
     } catch (error) {
@@ -707,7 +594,7 @@ async function loadSkills() {
                 <td><i class="${s.icon}" style="color: ${s.color}; font-size: 1.5rem;"></i></td>
                 <td>${escapeHtml(s.name)}</td>
                 <td>${s.level}%</td>
-                <td><span class="badge badge-info">${s.category || 'General'}</span></td>
+                <td><span class="badge" style="background: #6bc4ff">${s.category || 'General'}</span></td>
                 <td class="action-btns">
                     <button class="action-btn edit-btn" onclick="editSkill('${s._id || s.id}')">
                         <i class="fas fa-edit"></i>
@@ -725,7 +612,7 @@ async function loadSkills() {
 }
 
 window.showAddSkillModal = function() {
-    document.getElementById('skillModal')?.classList.add('active');
+    document.getElementById('skillModal').classList.add('active');
 };
 
 document.getElementById('skillForm')?.addEventListener('submit', async (e) => {
@@ -748,7 +635,7 @@ document.getElementById('skillForm')?.addEventListener('submit', async (e) => {
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Skill added successfully!');
+            showAlert('Skill added successfully! ✨');
             closeModal('skillModal');
             loadSkills();
             e.target.reset();
@@ -774,7 +661,7 @@ window.editSkill = async function(id) {
         const colorInput = document.getElementById('editSkillColor');
         if (colorInput) colorInput.value = skill.color;
 
-        document.getElementById('editSkillModal')?.classList.add('active');
+        document.getElementById('editSkillModal').classList.add('active');
     } catch (error) {
         showAlert('Error loading skill', 'error');
     }
@@ -800,7 +687,7 @@ document.getElementById('editSkillForm')?.addEventListener('submit', async (e) =
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Skill updated successfully!');
+            showAlert('Skill updated successfully! ✨');
             closeModal('editSkillModal');
             loadSkills();
         }
@@ -810,7 +697,7 @@ document.getElementById('editSkillForm')?.addEventListener('submit', async (e) =
 });
 
 window.deleteSkill = async function(id) {
-    if (!confirmAction('Delete this skill?')) return;
+    if (!confirm('Delete this skill?')) return;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/skills/${id}`, {
@@ -819,7 +706,7 @@ window.deleteSkill = async function(id) {
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Skill deleted successfully!');
+            showAlert('Skill deleted successfully!', 'success');
             loadSkills();
         }
     } catch (error) {
@@ -828,57 +715,268 @@ window.deleteSkill = async function(id) {
 };
 
 // ============================================
-// SOCIAL LINKS
+// SOCIAL LINKS - FIXED VERSION
 // ============================================
 
 async function loadSocialLinks() {
+    const socialGrid = document.getElementById('socialGrid');
+    if (!socialGrid) return;
+    
+    socialGrid.innerHTML = '<div class="loading">Loading social links...</div>';
+
     try {
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
         const links = profile.socialLinks || {};
 
-        setValue('socialGithub', links.github);
-        setValue('socialLinkedin', links.linkedin);
-        setValue('socialTwitter', links.twitter);
-        setValue('socialInstagram', links.instagram);
-        setValue('socialFacebook', links.facebook);
-        setValue('socialYoutube', links.youtube);
-        setValue('socialDiscord', links.discord);
-        setValue('socialMedium', links.medium);
+        if (Object.keys(links).length === 0) {
+            // Default social links
+            const defaultLinks = {
+                github: 'https://github.com/dhiraj',
+                linkedin: 'https://linkedin.com/in/dhiraj',
+                twitter: 'https://twitter.com/dhiraj',
+                instagram: 'https://instagram.com/dhiraj'
+            };
+            
+            socialGrid.innerHTML = Object.entries(defaultLinks).map(([platform, url]) => `
+                <div class="social-card" data-platform="${platform}">
+                    <i class="fab fa-${platform}"></i>
+                    <div class="platform">${platform.charAt(0).toUpperCase() + platform.slice(1)}</div>
+                    <input type="url" class="social-url" value="${url}" placeholder="URL">
+                    <div class="social-actions">
+                        <button class="social-save" onclick="saveSocialLink('${platform}')">
+                            <i class="fas fa-save"></i>
+                        </button>
+                        <button class="social-delete" onclick="deleteSocialLink('${platform}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            socialGrid.innerHTML = Object.entries(links).map(([platform, url]) => `
+                <div class="social-card" data-platform="${platform}">
+                    <i class="fab fa-${platform}"></i>
+                    <div class="platform">${platform.charAt(0).toUpperCase() + platform.slice(1)}</div>
+                    <input type="url" class="social-url" value="${url}" placeholder="URL">
+                    <div class="social-actions">
+                        <button class="social-save" onclick="saveSocialLink('${platform}')">
+                            <i class="fas fa-save"></i>
+                        </button>
+                        <button class="social-delete" onclick="deleteSocialLink('${platform}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
     } catch (error) {
         console.error('Error loading social links:', error);
+        socialGrid.innerHTML = '<div class="text-center error">Error loading social links</div>';
     }
 }
 
-document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const socialLinks = {
-        github: document.getElementById('socialGithub')?.value || '',
-        linkedin: document.getElementById('socialLinkedin')?.value || '',
-        twitter: document.getElementById('socialTwitter')?.value || '',
-        instagram: document.getElementById('socialInstagram')?.value || '',
-        facebook: document.getElementById('socialFacebook')?.value || '',
-        youtube: document.getElementById('socialYoutube')?.value || '',
-        discord: document.getElementById('socialDiscord')?.value || '',
-        medium: document.getElementById('socialMedium')?.value || ''
-    };
-
+window.saveSocialLink = async function(platform) {
+    const card = document.querySelector(`[data-platform="${platform}"]`);
+    const url = card.querySelector('.social-url').value;
+    
     try {
-        const response = await fetchWithAuth(`${API_URL}/profile`, {
+        const response = await fetchWithAuth(`${API_URL}/profile`);
+        const profile = await response.json();
+        
+        const socialLinks = profile.socialLinks || {};
+        socialLinks[platform] = url;
+        
+        const updateResponse = await fetchWithAuth(`${API_URL}/profile`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ socialLinks })
         });
+        
+        const data = await updateResponse.json();
+        if (data.success) {
+            showAlert('Social link updated! ✨', 'success');
+        }
+    } catch (error) {
+        console.error('Error saving social link:', error);
+        showAlert('Error saving social link', 'error');
+    }
+};
+
+window.deleteSocialLink = async function(platform) {
+    if (!confirm(`Delete ${platform} link?`)) return;
+    
+    try {
+        const response = await fetchWithAuth(`${API_URL}/profile`);
+        const profile = await response.json();
+        
+        const socialLinks = profile.socialLinks || {};
+        delete socialLinks[platform];
+        
+        const updateResponse = await fetchWithAuth(`${API_URL}/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ socialLinks })
+        });
+        
+        const data = await updateResponse.json();
+        if (data.success) {
+            showAlert('Social link deleted!', 'success');
+            loadSocialLinks();
+        }
+    } catch (error) {
+        console.error('Error deleting social link:', error);
+        showAlert('Error deleting social link', 'error');
+    }
+};
+
+// Add Social Modal
+document.getElementById('addSocialForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const platform = document.getElementById('socialPlatform').value;
+    const customPlatform = document.getElementById('customPlatform')?.value;
+    const icon = document.getElementById('socialIcon').value;
+    const url = document.getElementById('socialUrl').value;
+    
+    const platformName = platform === 'custom' ? customPlatform : platform;
+    
+    try {
+        const response = await fetchWithAuth(`${API_URL}/profile`);
+        const profile = await response.json();
+        
+        const socialLinks = profile.socialLinks || {};
+        socialLinks[platformName] = url;
+        
+        const updateResponse = await fetchWithAuth(`${API_URL}/profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ socialLinks })
+        });
+        
+        const data = await updateResponse.json();
+        if (data.success) {
+            showAlert('Social platform added! ✨', 'success');
+            closeModal('addSocialModal');
+            e.target.reset();
+            loadSocialLinks();
+        }
+    } catch (error) {
+        console.error('Error adding social link:', error);
+        showAlert('Error adding social link', 'error');
+    }
+});
+
+// ============================================
+// TESTIMONIALS MANAGEMENT
+// ============================================
+
+async function loadTestimonials() {
+    const container = document.getElementById('testimonialsList');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading">Loading testimonials...</div>';
+
+    try {
+        const response = await fetchWithAuth(`${API_URL}/testimonials`);
+        const testimonials = await response.json();
+
+        if (!testimonials || testimonials.length === 0) {
+            container.innerHTML = '<div class="text-center">No testimonials yet</div>';
+            return;
+        }
+
+        container.innerHTML = testimonials.map(t => `
+            <div class="testimonial-item" data-id="${t._id || t.id}">
+                <div class="testimonial-quote">"${escapeHtml(t.content)}"</div>
+                <div class="testimonial-author">
+                    ${t.image ? `<img src="${BASE_URL}${t.image}" alt="${t.name}">` : ''}
+                    <div>
+                        <h4>${escapeHtml(t.name)}</h4>
+                        <p>${escapeHtml(t.position || '')} ${t.company ? 'at ' + escapeHtml(t.company) : ''}</p>
+                        <div class="testimonial-rating">
+                            ${'⭐'.repeat(t.rating || 5)}
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-actions">
+                    <button class="action-btn edit-btn" onclick="editTestimonial('${t._id || t.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deleteTestimonial('${t._id || t.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading testimonials:', error);
+        container.innerHTML = '<div class="text-center error">Error loading testimonials</div>';
+    }
+}
+
+window.showAddTestimonialModal = function() {
+    document.getElementById('addTestimonialModal').classList.add('active');
+};
+
+document.getElementById('addTestimonialForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('name', document.getElementById('testimonialName').value);
+    formData.append('position', document.getElementById('testimonialPosition').value);
+    formData.append('company', document.getElementById('testimonialCompany').value);
+    formData.append('content', document.getElementById('testimonialContent').value);
+    formData.append('rating', document.getElementById('testimonialRating').value);
+    
+    const imageFile = document.getElementById('testimonialImage')?.files[0];
+    if (imageFile) formData.append('image', imageFile);
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetchWithAuth(`${API_URL}/testimonials`, {
+            method: 'POST',
+            body: formData
+        });
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Social links updated successfully!');
+            showAlert('Testimonial added! ✨', 'success');
+            closeModal('addTestimonialModal');
+            e.target.reset();
+            document.getElementById('testimonialImagePreview').style.display = 'none';
+            loadTestimonials();
         }
     } catch (error) {
-        showAlert('Error updating social links', 'error');
+        console.error('Error adding testimonial:', error);
+        showAlert('Error adding testimonial', 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 });
+
+window.deleteTestimonial = async function(id) {
+    if (!confirm('Delete this testimonial?')) return;
+
+    try {
+        const response = await fetchWithAuth(`${API_URL}/testimonials/${id}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showAlert('Testimonial deleted!', 'success');
+            loadTestimonials();
+        }
+    } catch (error) {
+        showAlert('Error deleting testimonial', 'error');
+    }
+};
 
 // ============================================
 // SETTINGS
@@ -924,7 +1022,7 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Settings updated successfully!');
+            showAlert('Settings updated! ✨', 'success');
         }
     } catch (error) {
         showAlert('Error updating settings', 'error');
@@ -966,7 +1064,7 @@ async function loadUploads() {
 }
 
 window.deleteUpload = async function(filename) {
-    if (!confirmAction('Delete this file?')) return;
+    if (!confirm('Delete this file?')) return;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/uploads/${filename}`, {
@@ -975,7 +1073,7 @@ window.deleteUpload = async function(filename) {
 
         const data = await response.json();
         if (data.success) {
-            showAlert('File deleted successfully!');
+            showAlert('File deleted!', 'success');
             loadUploads();
         }
     } catch (error) {
@@ -1009,7 +1107,7 @@ window.backupData = async function() {
 
         localStorage.setItem('lastBackup', Date.now());
         document.getElementById('lastBackup').textContent = new Date().toLocaleString();
-        showAlert('Backup created successfully!');
+        showAlert('Backup created! 💾', 'success');
     } catch (error) {
         console.error('Backup error:', error);
         showAlert('Error creating backup', 'error');
@@ -1038,7 +1136,7 @@ window.restoreData = async function() {
 
             const data = await response.json();
             if (data.success) {
-                showAlert('Data restored successfully!');
+                showAlert('Data restored! ✨', 'success');
                 setTimeout(() => window.location.reload(), 2000);
             }
         } catch (error) {
@@ -1069,7 +1167,7 @@ async function loadMessages() {
 
         tbody.innerHTML = messages.map(m => `
             <tr class="${m.read ? '' : 'unread'}">
-                <td>${!m.read ? '<span class="badge badge-danger">New</span>' : '<span class="badge badge-secondary">Read</span>'}</td>
+                <td>${!m.read ? '<span class="badge" style="background: #ff6b9d">New</span>' : '<span class="badge" style="background: #888">Read</span>'}</td>
                 <td>${escapeHtml(m.name || 'Anonymous')}</td>
                 <td><a href="mailto:${m.email}">${escapeHtml(m.email)}</a></td>
                 <td>${escapeHtml(m.subject || 'No Subject')}</td>
@@ -1148,11 +1246,11 @@ window.closeMessageModal = function() {
 
 window.refreshMessages = function() {
     loadMessages();
-    showAlert('Messages refreshed', 'info');
+    showAlert('Messages refreshed! 🔄', 'info');
 };
 
 window.deleteMessage = async function(id) {
-    if (!confirmAction('Delete this message?')) return;
+    if (!confirm('Delete this message?')) return;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/messages/${id}`, {
@@ -1161,7 +1259,7 @@ window.deleteMessage = async function(id) {
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Message deleted!');
+            showAlert('Message deleted!', 'success');
             loadMessages();
             updateUnreadCount();
             closeMessageModal();
@@ -1193,12 +1291,12 @@ async function updateUnreadCount() {
 // ============================================
 // MESSAGE FILTERS
 // ============================================
-document.querySelectorAll('[data-message-filter]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-message-filter]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        const filter = btn.dataset.messageFilter;
+document.querySelectorAll('[data-filter]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        const filter = this.dataset.filter;
         const rows = document.querySelectorAll('#messagesList tr');
         
         rows.forEach(row => {
@@ -1224,7 +1322,7 @@ window.closeModal = closeModal;
 // ============================================
 
 function logout() {
-    if (confirmAction('Are you sure you want to logout?')) {
+    if (confirm('🌸 Logout? 🌸')) {
         localStorage.clear();
         sessionStorage.clear();
         window.location.href = 'index.html?loggedout=true';
@@ -1245,12 +1343,6 @@ setInterval(() => {
     }
 }, 60000);
 
-['click', 'keypress', 'scroll', 'mousemove'].forEach(event => {
-    document.addEventListener(event, () => {
-        sessionStorage.setItem('lastActivity', Date.now());
-    });
-});
-
 // ============================================
 // INITIALIZATION
 // ============================================
@@ -1259,20 +1351,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('📊 Admin Dashboard Initialized');
     
     if (window.location.pathname.includes('dashboard.html')) {
-        if (!checkAuth()) {
-            redirectToLogin('session_expired');
-            return;
-        }
-        
         showSection('dashboard');
         await loadDashboard();
         await updateUnreadCount();
+        await loadSocialLinks(); // Load social links
     }
     
-    const yearElements = document.querySelectorAll('.current-year');
-    yearElements.forEach(el => {
-        el.textContent = new Date().getFullYear();
-    });
-    
-    console.log('✅ Admin Panel Ready');
+    console.log('✅ Admin Panel Ready ✨');
 });
