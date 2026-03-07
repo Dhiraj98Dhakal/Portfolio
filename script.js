@@ -29,8 +29,6 @@ async function loadAllData() {
         const projects = await projectsRes.json();
         updateProjects(projects);
 
-      
-
         console.log('✅ All data loaded at', new Date().toLocaleTimeString());
     } catch (error) {
         console.log('❌ Backend not connected, using default data');
@@ -61,9 +59,8 @@ function updateProfile(profile) {
         }
     });
 
-    // Update social links - FIXED: सबै platforms को लागि
+    // ========== SOCIAL LINKS UPDATE - FIXED ==========
     if (profile.socialLinks) {
-        // सबै social platforms को लागि एकै पटकमा update गर्ने
         document.querySelectorAll('[data-social]').forEach(el => {
             const platform = el.getAttribute('data-social');
             const url = profile.socialLinks[platform];
@@ -123,18 +120,15 @@ function updateSkills(skills) {
 
 // ========== FAVICON SETUP ==========
 function setFavicon(iconUrl) {
-    // Remove existing favicon
     document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]').forEach(el => el.remove());
     
     if (iconUrl && iconUrl !== 'null') {
-        // Main favicon
         const link = document.createElement('link');
         link.rel = 'icon';
         link.type = 'image/png';
         link.href = iconUrl;
         document.head.appendChild(link);
         
-        // Apple touch icon
         const appleLink = document.createElement('link');
         appleLink.rel = 'apple-touch-icon';
         appleLink.href = iconUrl;
@@ -142,7 +136,6 @@ function setFavicon(iconUrl) {
         
         console.log('✅ Favicon set to:', iconUrl);
     } else {
-        // Default favicon
         const link = document.createElement('link');
         link.rel = 'icon';
         link.type = 'image/png';
@@ -218,8 +211,6 @@ function updateProjects(projects) {
     
     initProjectFilters();
 }
-
-
 
 // ========== PROJECT FILTERS ==========
 function initProjectFilters() {
@@ -410,6 +401,14 @@ function updateCurrentYear() {
         el.textContent = new Date().getFullYear();
     });
 }
+
+// ========== STORAGE EVENT LISTENER - ADMIN UPDATE DETECT ==========
+window.addEventListener('storage', (e) => {
+    if (e.key === 'adminUpdate') {
+        console.log('🔄 Admin update detected, refreshing...');
+        loadAllData();
+    }
+});
 
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', () => {
