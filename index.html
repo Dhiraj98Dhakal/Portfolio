@@ -17,12 +17,21 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* Fallback for images */
+        .fallback-image {
+            background: linear-gradient(135deg, #00f3ff, #ff00c8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <!-- ===== CUSTOM CURSOR ===== -->
-    <div class="cursor"></div>
-    <div class="cursor-follower"></div>
-
     <!-- ===== NAVBAR ===== -->
     <nav class="navbar">
         <div class="container">
@@ -55,7 +64,7 @@
                 
                 <h1 class="hero-title">
                     <span class="title-line">Hi, I'm</span>
-                    <span class="title-name glitch" data-text="Dhiraj Dhakal" data-profile="name">Dhiraj Dhakal</span>
+                    <span class="title-name" data-profile="name">Dhiraj Dhakal</span>
                 </h1>
                 
                 <div class="hero-typing">
@@ -63,7 +72,7 @@
                     <span class="cursor-typing">|</span>
                 </div>
                 
-                <p class="hero-description" data-profile="bio">Crafting digital experiences with code and creativity. Building the future, one line at a time.</p>
+                <p class="hero-description" data-profile="bio">Crafting digital experiences with code and creativity.</p>
                 
                 <div class="hero-buttons">
                     <a href="#projects" class="btn btn-primary">View Work</a>
@@ -81,30 +90,20 @@
                 </div>
             </div>
             
-            <!-- Profile Image with Floating Icons -->
+            <!-- Profile Image -->
             <div class="hero-image">
                 <div class="image-wrapper">
-                    <img src="images/profile.jpg" alt="Dhiraj Dhakal" data-profile="image" id="profile-img">
-                    <div class="floating-icon icon-1">
-                        <i class="fab fa-react"></i>
-                    </div>
-                    <div class="floating-icon icon-2">
-                        <i class="fab fa-js"></i>
-                    </div>
-                    <div class="floating-icon icon-3">
-                        <i class="fab fa-node"></i>
-                    </div>
+                    <img src="images/profile.jpg" alt="Dhiraj Dhakal" data-profile="image" id="profile-img"
+                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22350%22%20height%3D%22350%22%20viewBox%3D%220%200%20350%20350%22%3E%3Crect%20width%3D%22350%22%20height%3D%22350%22%20fill%3D%22%230a0a0f%22%2F%3E%3Ctext%20x%3D%22175%22%20y%3D%22175%22%20font-family%3D%27Arial%27%20font-size%3D%2224%22%20fill%3D%22%2300f3ff%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3EDD%3C%2Ftext%3E%3C%2Fsvg%3E';">
+                    <div class="floating-icon icon-1"><i class="fab fa-react"></i></div>
+                    <div class="floating-icon icon-2"><i class="fab fa-js"></i></div>
+                    <div class="floating-icon icon-3"><i class="fab fa-node"></i></div>
                 </div>
             </div>
         </div>
         
-        <!-- Scroll Indicator -->
         <div class="scroll-down">
-            <a href="#about">
-                <span></span>
-                <span></span>
-                <span></span>
-            </a>
+            <a href="#about"><span></span><span></span><span></span></a>
         </div>
     </section>
 
@@ -119,68 +118,35 @@
             <div class="about-content">
                 <div class="about-left">
                     <div class="about-image">
-                        <img src="images/about.jpg" alt="About Dhiraj" data-profile="aboutImage">
+                        <img src="images/about.jpg" alt="About Dhiraj" data-profile="aboutImage"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22400%22%20height%3D%22400%22%20viewBox%3D%220%200%20400%20400%22%3E%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22%2312121a%22%2F%3E%3Ctext%20x%3D%22200%22%20y%3D%22200%22%20font-family%3D%27Arial%27%20font-size%3D%2224%22%20fill%3D%22%2300f3ff%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3EAbout%3C%2Ftext%3E%3C%2Fsvg%3E';">
                         <div class="experience-badge">
                             <span class="years" data-profile="experience">2+</span>
-                            <span class="text">Years of<br>Experience</span>
+                            <span class="text">Years</span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="about-right">
-                    <p class="about-text" data-profile="aboutText">
-                        I'm a passionate <span class="highlight">BICTE student</span> with a strong interest in web development 
-                        and technology. I love creating beautiful, functional websites and applications 
-                        that solve real-world problems.
-                    </p>
+                    <p class="about-text" data-profile="aboutText">BICTE student passionate about web development.</p>
                     
                     <div class="about-info">
-                        <div class="info-item">
-                            <span class="info-title">Name:</span>
-                            <span class="info-value" data-profile="name">Dhiraj Dhakal</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-title">Email:</span>
-                            <span class="info-value" data-profile="email">dhiraj@example.com</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-title">Phone:</span>
-                            <span class="info-value" data-profile="phone">+977 9808704655</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-title">Location:</span>
-                            <span class="info-value" data-profile="location">Morang, Nepal</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-title">Country:</span>
-                            <span class="info-value" data-profile="country">Nepal</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-title">Study:</span>
-                            <span class="info-value" data-profile="education">BICTE (2022 - Present)</span>
-                        </div>
+                        <div class="info-item"><span class="info-title">Name:</span> <span data-profile="name">Dhiraj Dhakal</span></div>
+                        <div class="info-item"><span class="info-title">Email:</span> <span data-profile="email">dhiraj@example.com</span></div>
+                        <div class="info-item"><span class="info-title">Phone:</span> <span data-profile="phone">+977 9808704655</span></div>
+                        <div class="info-item"><span class="info-title">Location:</span> <span data-profile="location">Morang, Nepal</span></div>
+                        <div class="info-item"><span class="info-title">Country:</span> <span data-profile="country">Nepal</span></div>
+                        <div class="info-item"><span class="info-title">Study:</span> <span data-profile="education">BICTE (2022 - Present)</span></div>
                     </div>
                     
                     <div class="about-stats">
-                        <div class="stat-box">
-                            <span class="stat-number" data-stat="projects">15+</span>
-                            <span class="stat-label">Projects</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-number" data-stat="certificates">8</span>
-                            <span class="stat-label">Certificates</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-number" data-stat="clients">10+</span>
-                            <span class="stat-label">Happy Clients</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-number" data-stat="years">2</span>
-                            <span class="stat-label">Years Learning</span>
-                        </div>
+                        <div class="stat-box"><span class="stat-number" data-stat="projects">15+</span><span class="stat-label">Projects</span></div>
+                        <div class="stat-box"><span class="stat-number" data-stat="certificates">8</span><span class="stat-label">Certs</span></div>
+                        <div class="stat-box"><span class="stat-number" data-stat="clients">10+</span><span class="stat-label">Clients</span></div>
+                        <div class="stat-box"><span class="stat-number" data-stat="years">2</span><span class="stat-label">Years</span></div>
                     </div>
                     
-                    <a href="#contact" class="btn btn-primary">Let's Connect</a>
+                    <a href="#contact" class="btn btn-primary">Hire Me</a>
                 </div>
             </div>
         </div>
@@ -191,13 +157,9 @@
         <div class="container">
             <div class="section-header">
                 <span class="section-subtitle">My Expertise</span>
-                <h2>Skills & <span>Technologies</span></h2>
+                <h2>Skills</h2>
             </div>
-            
-            <div class="skills-container" id="skills-container">
-                <!-- Skills will be loaded dynamically -->
-                <div class="loading">Loading skills...</div>
-            </div>
+            <div class="skills-container" id="skills-container"></div>
         </div>
     </section>
 
@@ -206,18 +168,15 @@
         <div class="container">
             <div class="section-header">
                 <span class="section-subtitle">My Portfolio</span>
-                <h2>Featured <span>Projects</span></h2>
+                <h2>Projects</h2>
             </div>
             
             <div class="project-filters">
-                <button class="filter-btn active" data-filter="all">All Projects</button>
+                <button class="filter-btn active" data-filter="all">All</button>
                 <button class="filter-btn" data-filter="featured">Featured</button>
             </div>
             
-            <div class="projects-grid" id="projects-grid">
-                <!-- Projects will be loaded dynamically -->
-                <div class="loading">Loading projects...</div>
-            </div>
+            <div class="projects-grid" id="projects-grid"></div>
         </div>
     </section>
 
@@ -228,11 +187,7 @@
                 <span class="section-subtitle">Client Feedback</span>
                 <h2>Testimonials</h2>
             </div>
-            
-            <div class="testimonials-container" id="testimonials-container">
-                <!-- Testimonials will be loaded dynamically -->
-                <div class="loading">Loading testimonials...</div>
-            </div>
+            <div class="testimonials-container" id="testimonials-container"></div>
         </div>
     </section>
 
@@ -241,65 +196,38 @@
         <div class="container">
             <div class="section-header">
                 <span class="section-subtitle">Get In Touch</span>
-                <h2>Contact <span>Me</span></h2>
+                <h2>Contact</h2>
             </div>
             
             <div class="contact-container">
                 <div class="contact-left">
                     <h3 class="contact-title" data-profile="contactTitle">Let's work together</h3>
-                    
-                    <p class="contact-text" data-profile="contactText">
-                        I'm always interested in hearing about new opportunities, creative projects, 
-                        or just having a chat about tech.
-                    </p>
+                    <p class="contact-text" data-profile="contactText">I'm always interested in hearing about new opportunities.</p>
                     
                     <div class="contact-info">
-                        <!-- Email -->
                         <div class="contact-item">
-                            <div class="contact-icon">
-                                <i class="fas fa-envelope"></i>
-                            </div>
+                            <i class="fas fa-envelope contact-icon"></i>
                             <div class="contact-details">
                                 <span>Email</span>
                                 <a href="mailto:dhiraj@example.com" data-profile="email">dhiraj@example.com</a>
                             </div>
                         </div>
-                        
-                        <!-- Phone -->
                         <div class="contact-item">
-                            <div class="contact-icon">
-                                <i class="fas fa-phone-alt"></i>
-                            </div>
+                            <i class="fas fa-phone-alt contact-icon"></i>
                             <div class="contact-details">
                                 <span>Phone</span>
                                 <a href="tel:+9779808704655" data-profile="phone">+977 9808704655</a>
                             </div>
                         </div>
-                        
-                        <!-- Location -->
                         <div class="contact-item">
-                            <div class="contact-icon">
-                                <i class="fas fa-map-marker-alt"></i>
-                            </div>
+                            <i class="fas fa-map-marker-alt contact-icon"></i>
                             <div class="contact-details">
                                 <span>Location</span>
                                 <span data-profile="location">Morang, Nepal</span>
                             </div>
                         </div>
-                        
-                        <!-- Website -->
-                        <div class="contact-item">
-                            <div class="contact-icon">
-                                <i class="fas fa-globe"></i>
-                            </div>
-                            <div class="contact-details">
-                                <span>Website</span>
-                                <a href="#" data-profile="website">www.dhiraj.com.np</a>
-                            </div>
-                        </div>
                     </div>
                     
-                    <!-- Social Links -->
                     <div class="contact-social">
                         <h4>Follow me on</h4>
                         <div class="social-links">
@@ -307,8 +235,6 @@
                             <a href="#" class="social-link" data-social="linkedin"><i class="fab fa-linkedin-in"></i></a>
                             <a href="#" class="social-link" data-social="twitter"><i class="fab fa-twitter"></i></a>
                             <a href="#" class="social-link" data-social="instagram"><i class="fab fa-instagram"></i></a>
-                            <a href="#" class="social-link" data-social="facebook"><i class="fab fa-facebook-f"></i></a>
-                            <a href="#" class="social-link" data-social="youtube"><i class="fab fa-youtube"></i></a>
                         </div>
                     </div>
                 </div>
@@ -316,28 +242,18 @@
                 <div class="contact-right">
                     <form class="contact-form" id="contact-form">
                         <div class="form-group">
-                            <input type="text" id="name" placeholder="Your Name" required>
-                            <span class="focus-border"></span>
+                            <input type="text" id="name" name="name" autocomplete="name" placeholder="Your Name" required>
                         </div>
-                        
                         <div class="form-group">
-                            <input type="email" id="email" placeholder="Your Email" required>
-                            <span class="focus-border"></span>
+                            <input type="email" id="email" name="email" autocomplete="email" placeholder="Your Email" required>
                         </div>
-                        
                         <div class="form-group">
-                            <input type="text" id="subject" placeholder="Subject">
-                            <span class="focus-border"></span>
+                            <input type="text" id="subject" name="subject" autocomplete="off" placeholder="Subject">
                         </div>
-                        
                         <div class="form-group">
-                            <textarea id="message" rows="5" placeholder="Your Message" required></textarea>
-                            <span class="focus-border"></span>
+                            <textarea id="message" name="message" autocomplete="off" rows="5" placeholder="Your Message" required></textarea>
                         </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-full">
-                            <i class="fas fa-paper-plane"></i> Send Message
-                        </button>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
                     </form>
                 </div>
             </div>
@@ -349,12 +265,9 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-logo">
-                    <a href="#home" class="logo">
-                        <span data-profile="initials">D</span>.
-                    </a>
+                    <a href="#home" class="logo"><span data-profile="initials">D</span>.</a>
                     <p data-profile="shortBio">Creating digital experiences that make a difference.</p>
                 </div>
-                
                 <div class="footer-links">
                     <h4>Quick Links</h4>
                     <ul>
@@ -365,39 +278,26 @@
                         <li><a href="#contact">Contact</a></li>
                     </ul>
                 </div>
-                
                 <div class="footer-contact">
-                    <h4>Contact Info</h4>
+                    <h4>Contact</h4>
                     <ul>
                         <li><i class="fas fa-envelope"></i> <span data-profile="email">dhiraj@example.com</span></li>
                         <li><i class="fas fa-phone"></i> <span data-profile="phone">+977 9808704655</span></li>
                         <li><i class="fas fa-map-marker-alt"></i> <span data-profile="location">Morang, Nepal</span></li>
                     </ul>
                 </div>
-                
-                <div class="footer-social">
-                    <h4>Follow Me</h4>
-                    <div class="social-icons">
-                        <a href="#" data-social="github"><i class="fab fa-github"></i></a>
-                        <a href="#" data-social="linkedin"><i class="fab fa-linkedin-in"></i></a>
-                        <a href="#" data-social="twitter"><i class="fab fa-twitter"></i></a>
-                        <a href="#" data-social="instagram"><i class="fab fa-instagram"></i></a>
-                    </div>
-                </div>
             </div>
             
             <div class="footer-bottom">
                 <p>&copy; <span class="current-year">2024</span> <span data-profile="name">Dhiraj Dhakal</span>. All rights reserved.</p>
                 <p>Made with <i class="fas fa-heart"></i> in <span data-profile="country">Nepal</span></p>
-                <a href="/admin" class="admin-link"><i class="fas fa-lock"></i> Admin</a>
+                <a href="/admin" class="admin-link">Admin</a>
             </div>
         </div>
     </footer>
 
     <!-- ===== BACK TO TOP ===== -->
-    <a href="#" class="back-to-top">
-        <i class="fas fa-arrow-up"></i>
-    </a>
+    <a href="#" class="back-to-top"><i class="fas fa-arrow-up"></i></a>
 
     <!-- ===== SCRIPT ===== -->
     <script src="script.js"></script>
