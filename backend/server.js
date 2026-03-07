@@ -352,17 +352,22 @@ app.get('/api/profile', async (req, res) => {
     }
 });
 
-// ===== यो एउटा मात्र PUT ROUTE हो - SOCIAL LINKS ERROR FREE =====
+// ===== PUT /api/profile - COMPLETE FIXED VERSION =====
 app.put('/api/profile', authenticateToken, upload.fields([
     { name: 'profileImage', maxCount: 1 },
     { name: 'aboutImage', maxCount: 1 }
 ]), async (req, res) => {
     try {
         let profile = await Profile.findOne();
-        if (!profile) profile = new Profile();
+        if (!profile) {
+            profile = new Profile();
+        }
 
-        console.log('📥 Profile update received. Body fields:', Object.keys(req.body));
-
+        console.log('\n' + '='.repeat(60));
+        console.log('📥 PROFILE UPDATE REQUEST');
+        console.log('='.repeat(60));
+        console.log('Body fields:', Object.keys(req.body));
+        
         // Update text fields
         const textFields = [
             'name', 'title', 'bio', 'aboutText', 'email', 'phone',
@@ -376,90 +381,104 @@ app.put('/api/profile', authenticateToken, upload.fields([
             }
         });
 
-        // ===== SOCIAL LINKS - ERROR FREE VERSION =====
+        // ===== CRITICAL: SOCIAL LINKS FIX =====
         if (req.body.socialLinks) {
             try {
-                // socialLinks object हो कि string हो जाँच गर
+                console.log('\n📤 SOCIAL LINKS PROCESSING:');
+                
+                // Get socialLinks - यो object नै हुनुपर्छ
                 let socialLinks = req.body.socialLinks;
+                console.log('1. Raw socialLinks type:', typeof socialLinks);
+                console.log('2. Raw socialLinks value:', socialLinks);
                 
-                console.log('📥 RAW socialLinks received:', socialLinks);
-                console.log('📥 Type:', typeof socialLinks);
-                
-                // यदि string हो भने मात्र parse गर, नत्र object नै use गर
+                // If it's a string, parse it
                 if (typeof socialLinks === 'string') {
-                    try {
-                        socialLinks = JSON.parse(socialLinks);
-                        console.log('📥 Parsed from string:', socialLinks);
-                    } catch (e) {
-                        console.error('❌ JSON parse error:', e);
-                        socialLinks = {};
-                    }
+                    console.log('3. Parsing string to object...');
+                    socialLinks = JSON.parse(socialLinks);
                 }
                 
-                console.log('📥 Final social links object:', socialLinks);
+                console.log('4. Parsed socialLinks:', socialLinks);
                 
-                // Make sure profile.socialLinks exists
+                // Initialize if not exists
                 if (!profile.socialLinks) {
                     profile.socialLinks = {};
                 }
                 
-                // Update each social link - सबै platforms को लागि
-                if (socialLinks.github !== undefined) profile.socialLinks.github = socialLinks.github || '';
-                if (socialLinks.linkedin !== undefined) profile.socialLinks.linkedin = socialLinks.linkedin || '';
-                if (socialLinks.twitter !== undefined) profile.socialLinks.twitter = socialLinks.twitter || '';
-                if (socialLinks.instagram !== undefined) profile.socialLinks.instagram = socialLinks.instagram || '';
-                if (socialLinks.facebook !== undefined) profile.socialLinks.facebook = socialLinks.facebook || '';
-                if (socialLinks.youtube !== undefined) profile.socialLinks.youtube = socialLinks.youtube || '';
+                // IMPORTANT: Instagram value check
+                console.log('5. Instagram value received:', socialLinks.instagram);
                 
-                console.log('✅ Updated social links in profile:', profile.socialLinks);
+                // Update each social link DIRECTLY
+                if (socialLinks.github !== undefined) {
+                    profile.socialLinks.github = socialLinks.github || '';
+                    console.log('6a. Set github:', profile.socialLinks.github);
+                }
+                
+                if (socialLinks.linkedin !== undefined) {
+                    profile.socialLinks.linkedin = socialLinks.linkedin || '';
+                    console.log('6b. Set linkedin:', profile.socialLinks.linkedin);
+                }
+                
+                if (socialLinks.twitter !== undefined) {
+                    profile.socialLinks.twitter = socialLinks.twitter || '';
+                    console.log('6c. Set twitter:', profile.socialLinks.twitter);
+                }
+                
+                if (socialLinks.instagram !== undefined) {
+                    profile.socialLinks.instagram = socialLinks.instagram || '';
+                    console.log('6d. 🔴 SET INSTAGRAM TO:', profile.socialLinks.instagram);
+                }
+                
+                if (socialLinks.facebook !== undefined) {
+                    profile.socialLinks.facebook = socialLinks.facebook || '';
+                    console.log('6e. Set facebook:', profile.socialLinks.facebook);
+                }
+                
+                if (socialLinks.youtube !== undefined) {
+                    profile.socialLinks.youtube = socialLinks.youtube || '';
+                    console.log('6f. Set youtube:', profile.socialLinks.youtube);
+                }
+                
+                console.log('7. Final socialLinks object:', profile.socialLinks);
+                
+                // Mark as modified
+                profile.markModified('socialLinks');
+                
             } catch (e) {
-                console.error('❌ Social links error:', e);
+                console.error('❌ SOCIAL LINKS ERROR:', e);
             }
         } else {
             console.log('⚠️ No socialLinks in request body');
         }
-        // ===== SOCIAL LINKS ERROR FREE CODE END =====
 
-        // Update stats if provided
-        if (req.body.stats) {
-            try {
-                let stats = req.body.stats;
-                if (typeof stats === 'string') {
-                    stats = JSON.parse(stats);
-                }
-                if (!profile.stats) profile.stats = {};
-                Object.keys(stats).forEach(key => {
-                    profile.stats[key] = stats[key];
-                });
-            } catch (e) {
-                console.error('❌ Stats parse error:', e);
+        // Update images
+        if (req.files) {
+            if (req.files.profileImage) {
+                profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
+                console.log('📸 Profile image updated');
+            }
+            if (req.files.aboutImage) {
+                profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
+                console.log('📸 About image updated');
             }
         }
 
-        // Update images
-        if (req.files && req.files.profileImage) {
-            profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
-        }
-        if (req.files && req.files.aboutImage) {
-            profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
-        }
-
-        // Mark socialLinks as modified to ensure save
-        profile.markModified('socialLinks');
+        // Save to database
+        console.log('\n💾 SAVING TO DATABASE...');
+        const savedProfile = await profile.save();
         
-        await profile.save();
-        console.log('✅ Profile saved successfully');
-        console.log('✅ Final socialLinks in DB:', profile.socialLinks);
+        console.log('✅ SAVED PROFILE SOCIAL LINKS:', savedProfile.socialLinks);
+        console.log('✅ Instagram in DB:', savedProfile.socialLinks.instagram);
+        console.log('='.repeat(60) + '\n');
         
         // Return the updated profile
         res.json({ 
             success: true, 
             message: 'Profile updated successfully', 
-            profile: profile 
+            profile: savedProfile 
         });
         
     } catch (error) {
-        console.error('❌ Profile update error:', error);
+        console.error('❌ PROFILE UPDATE ERROR:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
