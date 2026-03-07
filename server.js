@@ -23,50 +23,29 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// CORS MIDDLEWARE - COMPLETELY FIXED
+// CORS MIDDLEWARE - ULTIMATE FIX
 // ============================================
-const allowedOrigins = [
-    'http://localhost:3001',
-    'http://127.0.0.1:5500',
-    'http://localhost:5500',
-    'http://localhost:3000',
-    'https://dhiraj-profile.netlify.app',
-    /\.netlify\.app$/  // Regex pattern for all Netlify domains
-];
 
-// Global CORS middleware
-app.use(cors({
-    origin: function(origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl)
-        if (!origin) return callback(null, true);
-        
-        // Check if origin is allowed
-        const isAllowed = allowedOrigins.some(allowed => {
-            if (allowed instanceof RegExp) {
-                return allowed.test(origin);
-            }
-            return allowed === origin;
-        });
-
-        if (isAllowed) {
-            callback(null, true);
-        } else {
-            console.log('❌ Blocked by CORS:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-    exposedHeaders: ['Content-Range', 'X-Content-Range']
-}));
-
-// Handle preflight requests - यो धेरै महत्त्वपूर्ण छ
-app.options('*', cors());
+// सबैभन्दा पहिले CORS middleware राख्नुहोस्
+app.use((req, res, next) => {
+    // सबै domains लाई allow गर्ने
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    
+    next();
+});
 
 // Body parser middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ============================================
 // UPLOADS FOLDER SETUP
@@ -161,15 +140,9 @@ const authenticateToken = (req, res, next) => {
 };
 
 // ============================================
-// ROOT ROUTE - FIXED WITH CORS HEADERS
+// ROOT ROUTE
 // ============================================
 app.get('/', (req, res) => {
-    // Set CORS headers explicitly
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
     res.json({
         success: true,
         message: '🚀 Backend API is running',
@@ -186,29 +159,19 @@ app.get('/', (req, res) => {
             uploads: '/api/uploads',
             backup: '/api/backup',
             admin_login: '/api/admin/login'
-        },
-        frontend: 'https://dhiraj-profile.netlify.app',
-        admin: 'https://dhiraj-profile.netlify.app/admin'
+        }
     });
 });
 
 // ============================================
-// TEST ROUTE - FIXED WITH CORS HEADERS
+// TEST ROUTE
 // ============================================
 app.get('/api/test', (req, res) => {
-    // Set CORS headers explicitly
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
     res.json({
         success: true,
         message: 'Server is running!',
         timestamp: new Date().toISOString(),
         database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        cors: 'enabled',
-        frontend: 'https://dhiraj-profile.netlify.app',
         endpoints: [
             '/api/profile',
             '/api/projects',
@@ -234,11 +197,11 @@ async function initializeData() {
             await Profile.create({
                 name: "Dhiraj Dhakal",
                 title: "BICTE Student | Developer | Tech Enthusiast",
-                bio: "Crafting digital experiences with code and creativity. Building the future, one line at a time.",
-                aboutText: "I'm a passionate BICTE student with a strong interest in web development and technology. I love creating beautiful, functional websites and applications that solve real-world problems.",
+                bio: "Crafting digital experiences with code and creativity.",
+                aboutText: "BICTE student passionate about web development.",
                 email: "dhiraj@example.com",
-                phone: "+977 9812345678",
-                location: "Kathmandu, Nepal",
+                phone: "+977 9808704655",
+                location: "Morang, Nepal",
                 country: "Nepal",
                 experience: "2+",
                 initials: "D",
@@ -256,12 +219,14 @@ async function initializeData() {
                     clients: "10+",
                     years: "2"
                 },
-                socialLinks: new Map([
-                    ['github', 'https://github.com'],
-                    ['linkedin', 'https://linkedin.com'],
-                    ['twitter', 'https://twitter.com'],
-                    ['instagram', 'https://instagram.com']
-                ])
+                socialLinks: {
+                    github: "https://github.com",
+                    linkedin: "https://linkedin.com",
+                    twitter: "https://twitter.com",
+                    instagram: "https://instagram.com",
+                    facebook: "",
+                    youtube: ""
+                }
             });
             console.log('✅ Created default profile');
         }
@@ -272,24 +237,24 @@ async function initializeData() {
             await Project.create([
                 {
                     title: "Smart Attendance System",
-                    description: "QR code based attendance system for college students with real-time tracking.",
-                    technologies: ["React", "Node.js", "MongoDB", "QR Code"],
+                    description: "QR code based attendance system",
+                    technologies: ["React", "Node.js", "MongoDB"],
                     github: "https://github.com",
                     demo: "https://demo.com",
                     featured: true
                 },
                 {
                     title: "E-Learning Platform",
-                    description: "Modern online learning platform with video courses, quizzes, and progress tracking.",
-                    technologies: ["Next.js", "Tailwind CSS", "Prisma", "PostgreSQL"],
+                    description: "Online learning platform",
+                    technologies: ["Next.js", "Tailwind", "Prisma"],
                     github: "https://github.com",
                     demo: "https://demo.com",
                     featured: true
                 },
                 {
                     title: "Weather App",
-                    description: "Real-time weather application with beautiful animations and 7-day forecast.",
-                    technologies: ["React", "OpenWeather API", "Chart.js"],
+                    description: "Real-time weather application",
+                    technologies: ["React", "API", "Chart.js"],
                     github: "https://github.com",
                     demo: "https://demo.com",
                     featured: false
@@ -345,45 +310,29 @@ app.post('/api/admin/login', (req, res) => {
 
     if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
         const token = jwt.sign(
-            { 
-                username,
-                loginTime: Date.now()
-            },
+            { username, loginTime: Date.now() },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        console.log('✅ Login successful - Token generated');
-
-        res.json({
-            success: true,
-            token: token,
-            message: 'Login successful'
-        });
+        console.log('✅ Login successful');
+        res.json({ success: true, token, message: 'Login successful' });
     } else {
-        console.log('❌ Login failed - invalid credentials');
-        res.status(401).json({
-            success: false,
-            message: 'Invalid username or password'
-        });
+        console.log('❌ Login failed');
+        res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
 });
 
 // ============================================
-// PROFILE API
+// PROFILE API - FIXED
 // ============================================
 app.get('/api/profile', async (req, res) => {
     try {
         let profile = await Profile.findOne();
-        if (!profile) {
-            profile = await Profile.create({});
-        }
+        if (!profile) profile = await Profile.create({});
         res.json(profile);
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -393,10 +342,13 @@ app.put('/api/profile', authenticateToken, upload.fields([
 ]), async (req, res) => {
     try {
         let profile = await Profile.findOne();
-        if (!profile) {
-            profile = new Profile();
-        }
+        if (!profile) profile = new Profile();
 
+        console.log('📥 Profile update received');
+        console.log('Body:', req.body);
+        console.log('Files:', req.files);
+
+        // Update text fields
         const textFields = [
             'name', 'title', 'bio', 'aboutText', 'email', 'phone',
             'location', 'country', 'experience', 'initials', 'education',
@@ -409,29 +361,57 @@ app.put('/api/profile', authenticateToken, upload.fields([
             }
         });
 
+        // Update stats
         if (req.body.stats) {
             try {
                 profile.stats = JSON.parse(req.body.stats);
             } catch (e) {}
         }
 
+        // Update social links
         if (req.body.socialLinks) {
             try {
-                profile.socialLinks = new Map(Object.entries(JSON.parse(req.body.socialLinks)));
+                const socialLinks = JSON.parse(req.body.socialLinks);
+                console.log('📥 Social links received:', socialLinks);
+                
+                profile.socialLinks = {
+                    ...profile.socialLinks,
+                    ...socialLinks
+                };
             } catch (e) {}
         }
 
+        // Update profile image
         if (req.files && req.files.profileImage) {
+            if (profile.profileImage) {
+                const oldImagePath = path.join(uploadsDir, path.basename(profile.profileImage));
+                if (fs.existsSync(oldImagePath)) {
+                    fs.unlinkSync(oldImagePath);
+                }
+            }
             profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
+            console.log('✅ Profile image updated:', profile.profileImage);
         }
 
+        // Update about image
         if (req.files && req.files.aboutImage) {
+            if (profile.aboutImage) {
+                const oldImagePath = path.join(uploadsDir, path.basename(profile.aboutImage));
+                if (fs.existsSync(oldImagePath)) {
+                    fs.unlinkSync(oldImagePath);
+                }
+            }
             profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
+            console.log('✅ About image updated:', profile.aboutImage);
         }
 
         await profile.save();
+        console.log('✅ Profile saved successfully');
+        
         res.json({ success: true, message: 'Profile updated successfully', profile });
+        
     } catch (error) {
+        console.error('❌ Profile update error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -451,9 +431,7 @@ app.get('/api/projects', async (req, res) => {
 app.get('/api/projects/:id', async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
-        if (!project) {
-            return res.status(404).json({ success: false, message: 'Project not found' });
-        }
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
         res.json(project);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -482,20 +460,16 @@ app.post('/api/projects', authenticateToken, upload.single('image'), async (req,
 app.put('/api/projects/:id', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
-        if (!project) {
-            return res.status(404).json({ success: false, message: 'Project not found' });
-        }
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
 
         project.title = req.body.title || project.title;
         project.description = req.body.description || project.description;
         project.technologies = req.body.technologies ? req.body.technologies.split(',').map(t => t.trim()) : project.technologies;
         project.github = req.body.github || project.github;
         project.demo = req.body.demo || project.demo;
-        project.featured = req.body.featured === 'true' ? true : false;
+        project.featured = req.body.featured === 'true';
 
-        if (req.file) {
-            project.image = `/uploads/${req.file.filename}`;
-        }
+        if (req.file) project.image = `/uploads/${req.file.filename}`;
 
         await project.save();
         res.json({ success: true, message: 'Project updated successfully', project });
@@ -547,57 +521,140 @@ app.put('/api/skills/:id', authenticateToken, async (req, res) => {
 app.delete('/api/skills/:id', authenticateToken, async (req, res) => {
     try {
         await Skill.findByIdAndDelete(req.params.id);
-        res.json({ success: true, message: 'Skill deleted successfully' });
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 // ============================================
-// MESSAGES API
+// MESSAGES API - COMPLETE FIX
 // ============================================
+
+// POST - नयाँ message
 app.post('/api/messages', async (req, res) => {
     try {
-        const newMessage = new Message(req.body);
+        const newMessage = new Message({
+            name: req.body.name,
+            email: req.body.email,
+            subject: req.body.subject || 'No Subject',
+            message: req.body.message
+        });
         await newMessage.save();
-        res.status(201).json({ success: true, message: 'Message sent successfully!' });
+        console.log('✅ Message saved with ID:', newMessage._id);
+        res.status(201).json({ 
+            success: true, 
+            message: 'Message sent successfully!',
+            id: newMessage._id 
+        });
     } catch (error) {
+        console.error('❌ Error saving message:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// GET - सबै messages
 app.get('/api/messages', authenticateToken, async (req, res) => {
     try {
         const messages = await Message.find().sort('-createdAt');
+        console.log(`✅ Found ${messages.length} messages`);
         res.json(messages);
     } catch (error) {
+        console.error('❌ Error fetching messages:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// GET - unread count
 app.get('/api/messages/unread/count', authenticateToken, async (req, res) => {
     try {
         const count = await Message.countDocuments({ read: false });
+        console.log('📧 Unread count:', count);
         res.json({ count });
     } catch (error) {
+        console.error('❌ Error getting unread count:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// GET - single message by ID
+app.get('/api/messages/:id', authenticateToken, async (req, res) => {
+    try {
+        const messageId = req.params.id;
+        console.log('🔍 Looking for message ID:', messageId);
+        
+        // Validate ID format
+        if (!messageId.match(/^[0-9a-fA-F]{24}$/)) {
+            console.log('❌ Invalid ID format');
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid message ID format' 
+            });
+        }
+        
+        const message = await Message.findById(messageId);
+        
+        if (!message) {
+            console.log('❌ Message not found:', messageId);
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Message not found' 
+            });
+        }
+        
+        console.log('✅ Message found:', message._id);
+        res.json(message);
+    } catch (error) {
+        console.error('❌ Error fetching message:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// PUT - mark as read
 app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     try {
-        await Message.findByIdAndUpdate(req.params.id, { read: true });
+        const messageId = req.params.id;
+        console.log('📝 Marking message as read:', messageId);
+        
+        const message = await Message.findById(messageId);
+        
+        if (!message) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Message not found' 
+            });
+        }
+        
+        message.read = true;
+        await message.save();
+        
+        console.log('✅ Message marked as read');
         res.json({ success: true });
     } catch (error) {
+        console.error('❌ Error marking message as read:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// DELETE - message
 app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
     try {
-        await Message.findByIdAndDelete(req.params.id);
+        const messageId = req.params.id;
+        console.log('🗑️ Deleting message:', messageId);
+        
+        const message = await Message.findByIdAndDelete(messageId);
+        
+        if (!message) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Message not found' 
+            });
+        }
+        
+        console.log('✅ Message deleted');
         res.json({ success: true });
     } catch (error) {
+        console.error('❌ Error deleting message:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -619,7 +676,6 @@ app.put('/api/settings', authenticateToken, async (req, res) => {
     try {
         let settings = await Settings.findOne();
         if (!settings) settings = new Settings();
-        
         Object.assign(settings, req.body);
         await settings.save();
         res.json({ success: true, settings });
@@ -704,17 +760,7 @@ app.use('*', (req, res) => {
         if (fs.existsSync(frontend404Path)) {
             res.sendFile(frontend404Path);
         } else {
-            res.status(404).send(`
-                <!DOCTYPE html>
-                <html>
-                <head><title>404 Not Found</title></head>
-                <body>
-                    <h1>404 - Page Not Found</h1>
-                    <p>The page you are looking for does not exist.</p>
-                    <a href="/">Go to API</a>
-                </body>
-                </html>
-            `);
+            res.status(404).send('404 Not Found');
         }
     }
 });
@@ -724,7 +770,10 @@ app.use('*', (req, res) => {
 // ============================================
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
-    res.status(500).json({ success: false, message: err.message || 'Internal server error' });
+    res.status(500).json({ 
+        success: false, 
+        message: err.message || 'Internal server error'
+    });
 });
 
 // ============================================

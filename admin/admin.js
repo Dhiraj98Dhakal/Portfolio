@@ -1,1490 +1,464 @@
-// admin.js - Complete Admin Panel with Fixed Session Management
-// ============================================
-// CONFIGURATION
-// ============================================
 const API_URL = 'https://portfolio-xqwu.onrender.com/api';
 const BASE_URL = 'https://portfolio-xqwu.onrender.com';
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-console.log('✅ Admin JS Loaded with API_URL:', API_URL);
-console.log('✅ Admin JS Loaded with BASE_URL:', BASE_URL);
-
-// ============================================
-// SECURITY CHECK FUNCTIONS
-// ============================================
-
-/**
- * Check if user is authenticated
- * @returns {boolean} - true if authenticated, false otherwise
- */
-function checkAuth() {
-    const token = localStorage.getItem('adminToken');
-    const loginTime = localStorage.getItem('adminLoginTime');
-    
-    // Debug logging
-    console.log('🔐 Auth Check:', {
-        hasToken: !!token,
-        hasLoginTime: !!loginTime
-    });
-    
-    // Check if token exists
-    if (!token || !loginTime) {
-        console.log('❌ No token or login time found');
-        return false;
-    }
-    
-    // Parse login time
-    const loginTimestamp = parseInt(loginTime);
-    
-    // Validate timestamp
-    if (isNaN(loginTimestamp) || loginTimestamp <= 0) {
-        console.log('❌ Invalid login time');
-        return false;
-    }
-    
-    // Check if token is expired
-    const now = Date.now();
-    const timeDiff = now - loginTimestamp;
-    
-    if (timeDiff > SESSION_TIMEOUT) {
-        console.log('❌ Session expired');
-        return false;
-    }
-    
-    console.log('✅ Authentication valid');
-    return true;
+// Check auth
+const token = localStorage.getItem('adminToken');
+const loginTime = localStorage.getItem('adminLoginTime');
+if (!token || !loginTime || (Date.now() - parseInt(loginTime) > 24*60*60*1000)) {
+    localStorage.clear();
+    window.location.href = 'index.html';
 }
 
-/**
- * Redirect to login page with error message
- * @param {string} error - Error type
- */
-function redirectToLogin(error = 'unauthorized') {
-    console.log(`🔄 Redirecting to login: ${error}`);
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminLoginTime');
-    localStorage.removeItem('adminUser');
-    window.location.replace(`index.html?error=${error}`);
-}
-
-// ============================================
-// INITIAL SECURITY CHECK
-// ============================================
-(function() {
-    console.log('🚀 Admin Dashboard Loading...');
-    
-    const token = localStorage.getItem('adminToken');
-    const loginTime = localStorage.getItem('adminLoginTime');
-    
-    if (!token || !loginTime) {
-        console.log('❌ No token or login time found - redirecting');
-        redirectToLogin('unauthorized');
-        return;
-    }
-    
-    if (!checkAuth()) {
-        redirectToLogin('session_expired');
-    } else {
-        console.log('✅ Authentication passed');
-    }
-})();
-
-// ============================================
-// API HELPER WITH AUTH
-// ============================================
-
-/**
- * Fetch with authentication token
- * @param {string} url - API endpoint
- * @param {Object} options - Fetch options
- * @returns {Promise} - Fetch response
- */
 async function fetchWithAuth(url, options = {}) {
-    const token = localStorage.getItem('adminToken');
-    
-    // Double-check auth before API call
-    if (!checkAuth()) {
-        redirectToLogin('session_expired');
-        throw new Error('Not authenticated');
-    }
-    
-    const defaultOptions = {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            ...options.headers
-        }
-    };
-    
-    // Don't set Content-Type for FormData
-    if (options.body instanceof FormData) {
-        delete defaultOptions.headers['Content-Type'];
-    }
-    
-    try {
-        const response = await fetch(url, { ...defaultOptions, ...options });
-        
-        // Handle unauthorized response
-        if (response.status === 401) {
-            console.log('❌ API returned 401 - session invalid');
-            redirectToLogin('session_expired');
-            throw new Error('Session expired');
-        }
-        
-        return response;
-    } catch (error) {
-        console.error('API Error:', error);
-        throw error;
-    }
+    options.headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
+    const res = await fetch(url, options);
+    if (res.status === 401) window.location.href = 'index.html';
+    return res;
 }
 
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-
-/**
- * Show alert message
- * @param {string} message - Message to display
- * @param {string} type - Alert type
- */
-function showAlert(message, type = 'success') {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert ${type}`;
-    alertDiv.innerHTML = `
-        <i class="fas ${type === 'success' ? 'fa-check-circle' : 
-                          type === 'error' ? 'fa-exclamation-circle' : 
-                          type === 'warning' ? 'fa-exclamation-triangle' : 
-                          'fa-info-circle'}"></i>
-        <span>${message}</span>
-    `;
-    
-    alertDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 25px;
-        background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' :
-                      type === 'error' ? 'linear-gradient(135deg, #ef4444, #dc2626)' :
-                      type === 'warning' ? 'linear-gradient(135deg, #f59e0b, #d97706)' :
-                      'linear-gradient(135deg, #3b82f6, #2563eb)'};
-        color: white;
-        border-radius: 10px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        animation: slideIn 0.3s ease;
-        font-family: 'Segoe UI', sans-serif;
-    `;
-    
-    document.body.appendChild(alertDiv);
-    
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 3000);
-}
-
-/**
- * Format date
- * @param {string} dateString - ISO date string
- * @returns {string} - Formatted date
- */
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-/**
- * Confirm action
- * @param {string} message - Confirmation message
- * @returns {boolean} - User confirmation
- */
-function confirmAction(message = 'Are you sure?') {
-    return confirm(message);
-}
-
-/**
- * Escape HTML to prevent XSS
- */
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-/**
- * Set input value
- */
-function setValue(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.value = value || '';
-}
-
-/**
- * Show image preview
- */
-function showImagePreview(id, src) {
-    const preview = document.getElementById(id);
-    if (preview) {
-        preview.src = src;
-        preview.style.display = 'block';
-    }
-}
-
-// ============================================
-// SIDEBAR TOGGLE
-// ============================================
-const sidebar = document.getElementById('sidebar');
-const toggleBtn = document.getElementById('toggleSidebar');
-const mainContent = document.getElementById('mainContent');
-
-if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
-        mainContent.classList.toggle('expanded');
-    });
-}
-
-// ============================================
-// SECTION NAVIGATION
-// ============================================
-const navLinks = document.querySelectorAll('.nav-link');
-const sections = document.querySelectorAll('.section');
-const pageTitle = document.getElementById('pageTitle');
-const pageDescription = document.getElementById('pageDescription');
-
-/**
- * Show specific section
- * @param {string} sectionId - Section ID to show
- */
-function showSection(sectionId) {
-    // Hide all sections
-    sections.forEach(s => s.style.display = 'none');
-    
-    // Show selected section
-    const selectedSection = document.getElementById(`${sectionId}-section`);
-    if (selectedSection) {
-        selectedSection.style.display = 'block';
-    }
-    
-    // Update active nav link
-    navLinks.forEach(l => l.classList.remove('active'));
-    const activeLink = document.querySelector(`[data-section="${sectionId}"]`);
-    if (activeLink) {
-        activeLink.classList.add('active');
-    }
-    
-    // Update page title
-    const titles = {
-        'dashboard': { title: 'Dashboard', desc: 'Overview of your portfolio' },
-        'profile': { title: 'Profile Settings', desc: 'Manage your personal information' },
-        'projects': { title: 'Projects', desc: 'Manage your projects' },
-        'add-project': { title: 'Add Project', desc: 'Create a new project' },
-        'skills': { title: 'Skills', desc: 'Manage your skills' },
-        'social': { title: 'Social Links', desc: 'Update your social media links' },
-        'settings': { title: 'Site Settings', desc: 'Configure your website' },
-        'uploads': { title: 'File Manager', desc: 'Manage uploaded files' },
-        'backup': { title: 'Backup & Restore', desc: 'Backup and restore your data' },
-        'messages': { title: 'Messages', desc: 'View contact form messages' }
-    };
-    
-    if (pageTitle) pageTitle.textContent = titles[sectionId]?.title || 'Dashboard';
-    if (pageDescription) pageDescription.textContent = titles[sectionId]?.desc || '';
-    
-    // Load section data
-    switch(sectionId) {
-        case 'dashboard': loadDashboard(); break;
-        case 'profile': loadProfile(); break;
-        case 'projects': loadProjects(); break;
-        case 'skills': loadSkills(); break;
-        case 'social': loadSocialLinks(); break;
-        case 'settings': loadSettings(); break;
-        case 'uploads': loadUploads(); break;
-        case 'messages': loadMessages(); break;
-        case 'backup': loadBackupInfo(); break;
-    }
-}
-
-// Add click handlers to nav links
-navLinks.forEach(link => {
+// Section navigation
+document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
-        showSection(link.dataset.section);
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+        document.getElementById(link.dataset.section + '-section').style.display = 'block';
+        document.getElementById('pageTitle').textContent = link.textContent.trim();
+        
+        // Load section data
+        if (link.dataset.section === 'dashboard') loadDashboard();
+        else if (link.dataset.section === 'profile') loadProfile();
+        else if (link.dataset.section === 'projects') loadProjects();
+        else if (link.dataset.section === 'skills') loadSkills();
+        else if (link.dataset.section === 'social') loadSocial();
+        else if (link.dataset.section === 'messages') loadMessages();
     });
 });
 
-// ============================================
-// DASHBOARD
-// ============================================
-
-/**
- * Load dashboard statistics
- */
+// Dashboard
 async function loadDashboard() {
-    const statsContainer = document.getElementById('dashboard-stats');
-    
-    if (!statsContainer) return;
-    
-    statsContainer.innerHTML = '<div class="loading">Loading stats...</div>';
-    
-    try {
-        const [projects, skills, uploadsRes, messagesRes] = await Promise.all([
-            fetchWithAuth(`${API_URL}/projects`).then(r => r.json()).catch(() => []),
-            fetchWithAuth(`${API_URL}/skills`).then(r => r.json()).catch(() => []),
-            fetchWithAuth(`${API_URL}/uploads`).catch(() => ({ files: [] })),
-            fetchWithAuth(`${API_URL}/messages`).catch(() => [])
-        ]);
-        
-        const uploads = uploadsRes.files ? uploadsRes : { files: [] };
-        const messages = Array.isArray(messagesRes) ? messagesRes : [];
-        
-        const featuredCount = projects.filter(p => p.featured).length;
-        const techSet = new Set();
-        projects.forEach(p => p.technologies?.forEach(t => techSet.add(t)));
-        
-        statsContainer.innerHTML = `
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-project-diagram"></i></div>
-                <div class="stat-value">${projects.length}</div>
-                <div class="stat-label">Total Projects</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-star"></i></div>
-                <div class="stat-value">${featuredCount}</div>
-                <div class="stat-label">Featured</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-code"></i></div>
-                <div class="stat-value">${skills.length}</div>
-                <div class="stat-label">Skills</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-images"></i></div>
-                <div class="stat-value">${uploads.files?.length || 0}</div>
-                <div class="stat-label">Uploads</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-envelope"></i></div>
-                <div class="stat-value">${messages.length}</div>
-                <div class="stat-label">Messages</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-tags"></i></div>
-                <div class="stat-value">${techSet.size}</div>
-                <div class="stat-label">Technologies</div>
-            </div>
-        `;
-        
-    } catch (error) {
-        console.error('Dashboard error:', error);
-        statsContainer.innerHTML = '<div class="error">Error loading dashboard</div>';
-    }
+    const [projects, skills, messages] = await Promise.all([
+        fetch(`${API_URL}/projects`).then(r => r.json()),
+        fetch(`${API_URL}/skills`).then(r => r.json()),
+        fetchWithAuth(`${API_URL}/messages`).then(r => r.json()).catch(() => [])
+    ]);
+    document.getElementById('dashboard-stats').innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+            <div><h3>${projects.length}</h3><p>Projects</p></div>
+            <div><h3>${skills.length}</h3><p>Skills</p></div>
+            <div><h3>${messages.length}</h3><p>Messages</p></div>
+        </div>
+    `;
 }
 
-// ============================================
-// PROFILE MANAGEMENT
-// ============================================
-
-/**
- * Load profile data
- */
+// Profile
 async function loadProfile() {
-    try {
-        const response = await fetch(`${API_URL}/profile`);
-        const profile = await response.json();
-
-        console.log('📥 Profile data loaded:', profile);
-
-        setValue('profileName', profile.name);
-        setValue('profileTitle', profile.title);
-        setValue('profileBio', profile.bio);
-        setValue('profileAboutText', profile.aboutText);
-        setValue('profileEmail', profile.email);
-        setValue('profilePhone', profile.phone);
-        setValue('profileLocation', profile.location);
-        setValue('profileCountry', profile.country || 'Nepal');
-        setValue('profileExperience', profile.experience || '2+');
-        setValue('profileInitials', profile.initials || 'D');
-        setValue('profileEducation', profile.education || 'BICTE (2022 - Present)');
-        setValue('profileWebsite', profile.website || '');
-        setValue('profileCvLink', profile.cvLink || '');
-        setValue('profileShortBio', profile.shortBio || '');
-        setValue('profileContactTitle', profile.contactTitle || '');
-        setValue('profileContactText', profile.contactText || '');
-
-        if (profile.profileImage) {
-            showImagePreview('profileImagePreview', `${BASE_URL}${profile.profileImage}`);
-        }
-        if (profile.aboutImage) {
-            showImagePreview('aboutImagePreview', `${BASE_URL}${profile.aboutImage}`);
-        }
-        
-    } catch (error) {
-        console.error('Error loading profile:', error);
-        showAlert('Error loading profile', 'error');
-    }
+    const profile = await fetch(`${API_URL}/profile`).then(r => r.json());
+    document.getElementById('profileName').value = profile.name || '';
+    document.getElementById('profileTitle').value = profile.title || '';
+    document.getElementById('profileBio').value = profile.bio || '';
+    document.getElementById('profileEmail').value = profile.email || '';
+    document.getElementById('profilePhone').value = profile.phone || '';
+    document.getElementById('profileLocation').value = profile.location || '';
+    document.getElementById('profileCountry').value = profile.country || 'Nepal';
+    document.getElementById('profileExperience').value = profile.experience || '2+';
+    document.getElementById('profileInitials').value = profile.initials || 'D';
 }
 
-// Profile form submit
 document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
     const formData = new FormData();
+    formData.append('name', document.getElementById('profileName').value);
+    formData.append('title', document.getElementById('profileTitle').value);
+    formData.append('bio', document.getElementById('profileBio').value);
+    formData.append('email', document.getElementById('profileEmail').value);
+    formData.append('phone', document.getElementById('profilePhone').value);
+    formData.append('location', document.getElementById('profileLocation').value);
+    formData.append('country', document.getElementById('profileCountry').value);
+    formData.append('experience', document.getElementById('profileExperience').value);
+    formData.append('initials', document.getElementById('profileInitials').value);
     
-    const fields = [
-        'name', 'title', 'bio', 'aboutText', 'email', 'phone', 
-        'location', 'country', 'experience', 'initials', 'education',
-        'website', 'cvLink', 'shortBio', 'contactTitle', 'contactText'
-    ];
+    const img = document.getElementById('profileImage').files[0];
+    if (img) formData.append('profileImage', img);
     
-    fields.forEach(field => {
-        const elementId = `profile${field.charAt(0).toUpperCase() + field.slice(1)}`;
-        const value = document.getElementById(elementId)?.value;
-        if (value) formData.append(field, value);
-    });
-
-    const profileImage = document.getElementById('profileImage')?.files[0];
-    if (profileImage) formData.append('profileImage', profileImage);
-    
-    const aboutImage = document.getElementById('aboutImage')?.files[0];
-    if (aboutImage) formData.append('aboutImage', aboutImage);
-
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    submitBtn.disabled = true;
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/profile`, {
-            method: 'PUT',
-            body: formData
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            showAlert('Profile updated successfully!');
-            loadProfile();
-            
-            // Trigger refresh on frontend
-            localStorage.setItem('adminUpdate', Date.now());
-        } else {
-            showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
-        }
-    } catch (error) {
-        showAlert('Error updating profile: ' + error.message, 'error');
-    } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }
+    const res = await fetchWithAuth(`${API_URL}/profile`, { method: 'PUT', body: formData });
+    const data = await res.json();
+    alert(data.success ? 'Profile updated' : 'Error');
 });
 
-// Image preview handlers
-['profileImage', 'aboutImage'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const preview = document.getElementById(id + 'Preview');
-                if (preview) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-});
-
-// ============================================
-// PROJECTS MANAGEMENT
-// ============================================
-
-/**
- * Load projects list
- */
+// Projects
 async function loadProjects() {
-    const tbody = document.getElementById('projectsList');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading projects...</td></tr>';
-
-    try {
-        const response = await fetch(`${API_URL}/projects`);
-        const projects = await response.json();
-
-        if (projects.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No projects found</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = projects.map(p => `
-            <tr>
-                <td>
-                    <img src="${p.image ? `${BASE_URL}${p.image}` : 'https://via.placeholder.com/50'}" 
-                         style="width:50px;height:50px;object-fit:cover;border-radius:5px;"
-                         onerror="this.src='https://via.placeholder.com/50'">
-                </td>
-                <td>${escapeHtml(p.title)}</td>
-                <td>${escapeHtml(p.description.substring(0, 50))}...</td>
-                <td>${p.technologies?.slice(0,2).join(', ') || ''}</td>
-                <td>
-                    <span class="badge ${p.featured ? 'badge-success' : 'badge-warning'}">
-                        ${p.featured ? 'Featured' : 'Regular'}
-                    </span>
-                </td>
-                <td class="action-btns">
-                    <button class="action-btn edit-btn" onclick="editProject('${p._id || p.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deleteProject('${p._id || p.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        
-    } catch (error) {
-        console.error('Error loading projects:', error);
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center error">Error loading projects</td></tr>';
-    }
+    const projects = await fetch(`${API_URL}/projects`).then(r => r.json());
+    document.getElementById('projectsList').innerHTML = projects.map(p => `
+        <tr>
+            <td><img src="${p.image ? BASE_URL + p.image : 'https://via.placeholder.com/50'}" style="width:50px;height:50px;object-fit:cover"></td>
+            <td>${p.title}</td>
+            <td>${p.description.substring(0,50)}...</td>
+            <td>${p.technologies?.slice(0,2).join(',')}</td>
+            <td>
+                <button class="btn btn-primary btn-sm" onclick="editProject('${p._id}')">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteProject('${p._id}')">Del</button>
+            </td>
+        </tr>
+    `).join('');
 }
 
-// Project form submit
 document.getElementById('projectForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const formData = new FormData();
-    formData.append('title', document.getElementById('projectTitle')?.value || '');
-    formData.append('description', document.getElementById('projectDescription')?.value || '');
-    formData.append('technologies', document.getElementById('projectTechnologies')?.value || '');
-    formData.append('github', document.getElementById('projectGithub')?.value || '');
-    formData.append('demo', document.getElementById('projectDemo')?.value || '');
-    formData.append('featured', document.getElementById('projectFeatured')?.checked || false);
-
-    const imageFile = document.getElementById('projectImage')?.files[0];
-    if (imageFile) formData.append('image', imageFile);
-
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-    submitBtn.disabled = true;
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/projects`, {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Project added successfully!');
-            e.target.reset();
-            document.getElementById('projectImagePreview').style.display = 'none';
-            showSection('projects');
-            loadProjects();
-        }
-    } catch (error) {
-        showAlert('Error adding project', 'error');
-    } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }
-});
-
-// Project image preview
-document.getElementById('projectImage')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const preview = document.getElementById('projectImagePreview');
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
-});
-
-/**
- * Edit project
- */
-window.editProject = async function(id) {
-    try {
-        const response = await fetch(`${API_URL}/projects`);
-        const projects = await response.json();
-        const project = projects.find(p => (p._id == id || p.id == id));
-
-        if (!project) {
-            showAlert('Project not found', 'error');
-            return;
-        }
-
-        setValue('editProjectId', project._id || project.id);
-        setValue('editProjectTitle', project.title);
-        setValue('editProjectDescription', project.description);
-        setValue('editProjectTechnologies', project.technologies?.join(', ') || '');
-        setValue('editProjectGithub', project.github || '');
-        setValue('editProjectDemo', project.demo || '');
-        
-        const featuredCheck = document.getElementById('editProjectFeatured');
-        if (featuredCheck) featuredCheck.checked = project.featured || false;
-
-        if (project.image) {
-            const preview = document.getElementById('editProjectImagePreview');
-            preview.src = project.image.startsWith('http') ? project.image : `${BASE_URL}${project.image}`;
-            preview.style.display = 'block';
-        }
-
-        document.getElementById('editProjectModal').classList.add('active');
-        
-    } catch (error) {
-        console.error('Error loading project:', error);
-        showAlert('Error loading project', 'error');
-    }
-};
-
-// Edit project form submit
-document.getElementById('editProjectForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const id = document.getElementById('editProjectId')?.value;
-    const formData = new FormData();
-    formData.append('title', document.getElementById('editProjectTitle')?.value || '');
-    formData.append('description', document.getElementById('editProjectDescription')?.value || '');
-    formData.append('technologies', document.getElementById('editProjectTechnologies')?.value || '');
-    formData.append('github', document.getElementById('editProjectGithub')?.value || '');
-    formData.append('demo', document.getElementById('editProjectDemo')?.value || '');
-    formData.append('featured', document.getElementById('editProjectFeatured')?.checked || false);
-
-    const imageFile = document.getElementById('editProjectImage')?.files[0];
-    if (imageFile) formData.append('image', imageFile);
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/projects/${id}`, {
-            method: 'PUT',
-            body: formData
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Project updated successfully!');
-            closeModal('editProjectModal');
-            loadProjects();
-        }
-    } catch (error) {
-        showAlert('Error updating project', 'error');
-    }
-});
-
-/**
- * Delete project
- */
-window.deleteProject = async function(id) {
-    if (!confirmAction('Delete this project?')) return;
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/projects/${id}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Project deleted successfully!');
-            loadProjects();
-        }
-    } catch (error) {
-        showAlert('Error deleting project', 'error');
-    }
-};
-
-// ============================================
-// SKILLS MANAGEMENT
-// ============================================
-
-/**
- * Load skills list
- */
-async function loadSkills() {
-    const tbody = document.getElementById('skillsList');
-    if (!tbody) return;
+    formData.append('title', document.getElementById('projectTitle').value);
+    formData.append('description', document.getElementById('projectDescription').value);
+    formData.append('technologies', document.getElementById('projectTechnologies').value);
+    formData.append('github', document.getElementById('projectGithub').value);
+    formData.append('demo', document.getElementById('projectDemo').value);
+    formData.append('featured', document.getElementById('projectFeatured').checked);
     
-    tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading skills...</td></tr>';
+    const img = document.getElementById('projectImage').files[0];
+    if (img) formData.append('image', img);
+    
+    await fetchWithAuth(`${API_URL}/projects`, { method: 'POST', body: formData });
+    alert('Project added');
+    showSection('projects');
+    loadProjects();
+});
 
-    try {
-        const response = await fetch(`${API_URL}/skills`);
-        const skills = await response.json();
-
-        if (skills.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No skills found</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = skills.map(s => `
-            <tr>
-                <td><i class="${s.icon}" style="color: ${s.color}; font-size: 1.5rem;"></i></td>
-                <td>${escapeHtml(s.name)}</td>
-                <td>${s.level}%</td>
-                <td><span class="badge badge-info">${s.category || 'General'}</span></td>
-                <td class="action-btns">
-                    <button class="action-btn edit-btn" onclick="editSkill('${s._id || s.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deleteSkill('${s._id || s.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        
-    } catch (error) {
-        console.error('Error loading skills:', error);
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center error">Error loading skills</td></tr>';
+window.deleteProject = async (id) => {
+    if (confirm('Delete?')) {
+        await fetchWithAuth(`${API_URL}/projects/${id}`, { method: 'DELETE' });
+        loadProjects();
     }
+};
+
+// Skills
+async function loadSkills() {
+    const skills = await fetch(`${API_URL}/skills`).then(r => r.json());
+    document.getElementById('skillsList').innerHTML = skills.map(s => `
+        <tr>
+            <td><i class="${s.icon}" style="color:${s.color}"></i></td>
+            <td>${s.name}</td>
+            <td>${s.level}%</td>
+            <td>
+                <button class="btn btn-danger btn-sm" onclick="deleteSkill('${s._id}')">Del</button>
+            </td>
+        </tr>
+    `).join('');
 }
 
-/**
- * Show add skill modal
- */
-window.showAddSkillModal = function() {
-    document.getElementById('skillModal').classList.add('active');
-};
+window.showAddSkillModal = () => document.getElementById('skillModal').classList.add('active');
 
-// Skill form submit
 document.getElementById('skillForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    const newSkill = {
-        name: document.getElementById('skillName')?.value,
-        level: parseInt(document.getElementById('skillLevel')?.value),
-        icon: document.getElementById('skillIcon')?.value,
-        color: document.getElementById('skillColor')?.value,
-        category: document.getElementById('skillCategory')?.value
+    const skill = {
+        name: document.getElementById('skillName').value,
+        level: parseInt(document.getElementById('skillLevel').value),
+        icon: document.getElementById('skillIcon').value,
+        color: document.getElementById('skillColor').value
     };
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/skills`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newSkill)
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Skill added successfully!');
-            closeModal('skillModal');
-            loadSkills();
-            e.target.reset();
-        }
-    } catch (error) {
-        showAlert('Error adding skill', 'error');
-    }
+    await fetchWithAuth(`${API_URL}/skills`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(skill)
+    });
+    document.getElementById('skillModal').classList.remove('active');
+    loadSkills();
 });
 
-/**
- * Edit skill
- */
-window.editSkill = async function(id) {
-    try {
-        const response = await fetch(`${API_URL}/skills`);
-        const skills = await response.json();
-        const skill = skills.find(s => (s._id == id || s.id == id));
-
-        if (!skill) return;
-
-        setValue('editSkillId', skill._id || skill.id);
-        setValue('editSkillName', skill.name);
-        setValue('editSkillLevel', skill.level);
-        setValue('editSkillIcon', skill.icon);
-        
-        const colorInput = document.getElementById('editSkillColor');
-        if (colorInput) colorInput.value = skill.color;
-
-        document.getElementById('editSkillModal').classList.add('active');
-        
-    } catch (error) {
-        showAlert('Error loading skill', 'error');
+window.deleteSkill = async (id) => {
+    if (confirm('Delete?')) {
+        await fetchWithAuth(`${API_URL}/skills/${id}`, { method: 'DELETE' });
+        loadSkills();
     }
 };
 
-// Edit skill form submit
-document.getElementById('editSkillForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const id = document.getElementById('editSkillId')?.value;
-    const updatedSkill = {
-        name: document.getElementById('editSkillName')?.value,
-        level: parseInt(document.getElementById('editSkillLevel')?.value),
-        icon: document.getElementById('editSkillIcon')?.value,
-        color: document.getElementById('editSkillColor')?.value
-    };
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/skills/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedSkill)
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Skill updated successfully!');
-            closeModal('editSkillModal');
-            loadSkills();
-        }
-    } catch (error) {
-        showAlert('Error updating skill', 'error');
-    }
-});
-
-/**
- * Delete skill
- */
-window.deleteSkill = async function(id) {
-    if (!confirmAction('Delete this skill?')) return;
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/skills/${id}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Skill deleted successfully!');
-            loadSkills();
-        }
-    } catch (error) {
-        showAlert('Error deleting skill', 'error');
-    }
-};
-
-// ============================================
-// SOCIAL LINKS - FIXED
-// ============================================
-
-/**
- * Load social links
- */
-async function loadSocialLinks() {
-    try {
-        const response = await fetch(`${API_URL}/profile`);
-        const profile = await response.json();
-        const links = profile.socialLinks || {};
-
-        console.log('📥 Social links loaded:', links);
-
-        setValue('socialGithub', links.github || '');
-        setValue('socialLinkedin', links.linkedin || '');
-        setValue('socialTwitter', links.twitter || '');
-        setValue('socialInstagram', links.instagram || '');
-        setValue('socialFacebook', links.facebook || '');
-        setValue('socialYoutube', links.youtube || '');
-        
-    } catch (error) {
-        console.error('Error loading social links:', error);
-    }
+// Social Links
+async function loadSocial() {
+    const profile = await fetch(`${API_URL}/profile`).then(r => r.json());
+    document.getElementById('socialGithub').value = profile.socialLinks?.github || '';
+    document.getElementById('socialLinkedin').value = profile.socialLinks?.linkedin || '';
+    document.getElementById('socialTwitter').value = profile.socialLinks?.twitter || '';
+    document.getElementById('socialInstagram').value = profile.socialLinks?.instagram || '';
+    document.getElementById('socialFacebook').value = profile.socialLinks?.facebook || '';
+    document.getElementById('socialYoutube').value = profile.socialLinks?.youtube || '';
 }
 
-// Social form submit - FIXED
 document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const socialLinks = {
-        github: document.getElementById('socialGithub')?.value || '',
-        linkedin: document.getElementById('socialLinkedin')?.value || '',
-        twitter: document.getElementById('socialTwitter')?.value || '',
-        instagram: document.getElementById('socialInstagram')?.value || '',
-        facebook: document.getElementById('socialFacebook')?.value || '',
-        youtube: document.getElementById('socialYoutube')?.value || ''
+        github: document.getElementById('socialGithub').value,
+        linkedin: document.getElementById('socialLinkedin').value,
+        twitter: document.getElementById('socialTwitter').value,
+        instagram: document.getElementById('socialInstagram').value,
+        facebook: document.getElementById('socialFacebook').value,
+        youtube: document.getElementById('socialYoutube').value
     };
-
-    console.log('📤 Sending social links:', socialLinks);
-
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
-    submitBtn.disabled = true;
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/profile`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ socialLinks })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Social links updated successfully!');
-            console.log('✅ Social links update successful');
-            
-            // Trigger refresh on frontend
-            localStorage.setItem('adminUpdate', Date.now());
-        } else {
-            showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
-        }
-    } catch (error) {
-        console.error('❌ Social links update error:', error);
-        showAlert('Error updating social links: ' + error.message, 'error');
-    } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }
+    await fetchWithAuth(`${API_URL}/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ socialLinks })
+    });
+    alert('Social links updated');
 });
 
-// ============================================
-// SETTINGS
-// ============================================
-
-/**
- * Load site settings
- */
-async function loadSettings() {
-    try {
-        const response = await fetch(`${API_URL}/settings`);
-        const settings = await response.json();
-
-        setValue('siteTitle', settings.siteTitle);
-        setValue('siteDescription', settings.siteDescription);
-        setValue('adminEmail', settings.adminEmail);
-        
-        const maintenanceCheck = document.getElementById('maintenanceMode');
-        if (maintenanceCheck) maintenanceCheck.checked = settings.maintenanceMode || false;
-        
-        setValue('copyrightText', settings.copyrightText || 'All rights reserved');
-        setValue('siteLanguage', settings.siteLanguage || 'en');
-        
-        if (settings.favicon) {
-            showImagePreview('faviconPreview', `${BASE_URL}${settings.favicon}`);
-        }
-        
-    } catch (error) {
-        console.error('Error loading settings:', error);
-    }
+// Messages
+async function loadMessages() {
+    const messages = await fetchWithAuth(`${API_URL}/messages`).then(r => r.json());
+    document.getElementById('messagesList').innerHTML = messages.map(m => `
+        <tr class="${m.read ? '' : 'unread'}">
+            <td>${m.read ? 'Read' : 'New'}</td>
+            <td>${m.name}</td>
+            <td>${m.email}</td>
+            <td>${new Date(m.createdAt).toLocaleString()}</td>
+            <td>
+                <button class="btn btn-primary btn-sm" onclick="viewMessage('${m._id}')">View</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteMessage('${m._id}')">Del</button>
+            </td>
+        </tr>
+    `).join('');
 }
 
-// Settings form submit
-document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const settings = {
-        siteTitle: document.getElementById('siteTitle')?.value || '',
-        siteDescription: document.getElementById('siteDescription')?.value || '',
-        adminEmail: document.getElementById('adminEmail')?.value || '',
-        maintenanceMode: document.getElementById('maintenanceMode')?.checked || false,
-        copyrightText: document.getElementById('copyrightText')?.value || 'All rights reserved',
-        siteLanguage: document.getElementById('siteLanguage')?.value || 'en'
-    };
-
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    submitBtn.disabled = true;
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/settings`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(settings)
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Settings updated successfully!');
-            loadSettings();
-        }
-    } catch (error) {
-        showAlert('Error updating settings', 'error');
-    } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }
-});
 
 // ============================================
-// UPLOADS MANAGER
+// TESTIMONIALS MANAGEMENT
 // ============================================
 
-/**
- * Load uploaded files
- */
-async function loadUploads() {
-    const container = document.getElementById('uploadsList');
-    if (!container) return;
+// Load testimonials
+async function loadTestimonials() {
+    const tbody = document.getElementById('testimonialsList');
+    if (!tbody) return;
     
-    container.innerHTML = '<div class="loading">Loading uploads...</div>';
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading testimonials...</td></tr>';
 
     try {
-        const response = await fetchWithAuth(`${API_URL}/uploads`);
-        const data = await response.json();
+        const response = await fetch(`${API_URL}/testimonials`);
+        const testimonials = await response.json();
 
-        if (!data.files || data.files.length === 0) {
-            container.innerHTML = '<div class="text-center">No files found</div>';
+        if (testimonials.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No testimonials yet</td></tr>';
             return;
         }
 
-        container.innerHTML = data.files.map(file => `
-            <div class="upload-item">
-                <img src="${BASE_URL}/uploads/${file}" onerror="this.src='https://via.placeholder.com/150'">
-                <p><small>${file}</small></p>
-                <button class="btn btn-danger btn-sm w-100" onclick="deleteUpload('${file}')">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </div>
+        tbody.innerHTML = testimonials.map(t => `
+            <tr>
+                <td>
+                    <img src="${t.image ? BASE_URL + t.image : 'https://via.placeholder.com/50'}" 
+                         style="width:50px;height:50px;object-fit:cover;border-radius:50%;">
+                </td>
+                <td>${t.name}</td>
+                <td>${t.position || '-'}</td>
+                <td>${t.company || '-'}</td>
+                <td>${'⭐'.repeat(t.rating)}</td>
+                <td>
+                    <button class="btn btn-primary btn-sm" onclick="editTestimonial('${t._id}')">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTestimonial('${t._id}')">Del</button>
+                </td>
+            </tr>
         `).join('');
         
     } catch (error) {
-        console.error('Error loading uploads:', error);
-        container.innerHTML = '<div class="text-center error">Error loading uploads</div>';
+        console.error('Error loading testimonials:', error);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center error">Error loading testimonials</td></tr>';
     }
 }
 
-/**
- * Delete uploaded file
- */
-window.deleteUpload = async function(filename) {
-    if (!confirmAction('Delete this file?')) return;
+// Show add testimonial modal
+window.showAddTestimonialModal = function() {
+    // Create modal dynamically
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.id = 'testimonialModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Add Testimonial</h3>
+            <form id="testimonialForm">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="testimonialName" required>
+                </div>
+                <div class="form-group">
+                    <label>Position</label>
+                    <input type="text" id="testimonialPosition">
+                </div>
+                <div class="form-group">
+                    <label>Company</label>
+                    <input type="text" id="testimonialCompany">
+                </div>
+                <div class="form-group">
+                    <label>Content</label>
+                    <textarea id="testimonialContent" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Rating (1-5)</label>
+                    <input type="number" id="testimonialRating" min="1" max="5" value="5">
+                </div>
+                <div class="form-group">
+                    <label>Image</label>
+                    <input type="file" id="testimonialImage" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary">Add</button>
+                <button type="button" class="btn btn-danger" onclick="closeTestimonialModal()">Cancel</button>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(modal);
 
-    try {
-        const response = await fetchWithAuth(`${API_URL}/uploads/${filename}`, {
-            method: 'DELETE'
+    // Add submit handler
+    document.getElementById('testimonialForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('name', document.getElementById('testimonialName').value);
+        formData.append('position', document.getElementById('testimonialPosition').value);
+        formData.append('company', document.getElementById('testimonialCompany').value);
+        formData.append('content', document.getElementById('testimonialContent').value);
+        formData.append('rating', document.getElementById('testimonialRating').value);
+        
+        const img = document.getElementById('testimonialImage').files[0];
+        if (img) formData.append('image', img);
+        
+        const res = await fetchWithAuth(`${API_URL}/testimonials`, {
+            method: 'POST',
+            body: formData
         });
-
-        const data = await response.json();
         
+        const data = await res.json();
         if (data.success) {
-            showAlert('File deleted successfully!');
-            loadUploads();
-        }
-    } catch (error) {
-        showAlert('Error deleting file', 'error');
-    }
-};
-
-// ============================================
-// BACKUP & RESTORE
-// ============================================
-
-/**
- * Load backup information
- */
-async function loadBackupInfo() {
-    const lastBackupEl = document.getElementById('lastBackup');
-    if (lastBackupEl) {
-        const lastBackup = localStorage.getItem('lastBackup');
-        lastBackupEl.textContent = lastBackup ? new Date(parseInt(lastBackup)).toLocaleString() : 'Never';
-    }
-}
-
-/**
- * Create backup
- */
-window.backupData = async function() {
-    try {
-        const response = await fetchWithAuth(`${API_URL}/backup`);
-        const data = await response.json();
-
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-
-        localStorage.setItem('lastBackup', Date.now());
-        document.getElementById('lastBackup').textContent = new Date().toLocaleString();
-        
-        showAlert('Backup created successfully!');
-        
-    } catch (error) {
-        console.error('Backup error:', error);
-        showAlert('Error creating backup', 'error');
-    }
-};
-
-/**
- * Restore from backup
- */
-window.restoreData = async function() {
-    const fileInput = document.getElementById('restoreFile');
-    const file = fileInput?.files[0];
-    
-    if (!file) {
-        showAlert('Please select a backup file', 'warning');
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const backup = JSON.parse(e.target.result);
-            
-            const response = await fetchWithAuth(`${API_URL}/restore`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(backup)
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                showAlert('Data restored successfully!');
-                setTimeout(() => window.location.reload(), 2000);
-            }
-        } catch (error) {
-            showAlert('Error restoring data: Invalid backup file', 'error');
-        }
-    };
-    reader.readAsText(file);
-};
-
-// ============================================
-// MESSAGES - COMPLETE FIX
-// ============================================
-
-/**
- * Load contact messages
- */
-async function loadMessages() {
-    const tbody = document.getElementById('messagesList');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading messages...</td></tr>';
-
-    try {
-        console.log('📧 Fetching messages from:', `${API_URL}/messages`);
-        
-        const response = await fetchWithAuth(`${API_URL}/messages`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const messages = await response.json();
-        console.log('📧 Messages received:', messages.length);
-
-        if (!messages || messages.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No messages yet</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = messages.map(m => {
-            const messageId = m._id || m.id;
-            const messageDate = m.createdAt || m.date || new Date().toISOString();
-            const name = m.name || 'Anonymous';
-            const email = m.email || 'No email';
-            const subject = m.subject || 'No Subject';
-            const message = m.message || 'No message content';
-            const isRead = m.read || false;
-            
-            return `
-            <tr class="${isRead ? '' : 'unread'}" data-message-id="${messageId}">
-                <td>
-                    ${!isRead ? '<span class="badge badge-danger">New</span>' : '<span class="badge badge-success">Read</span>'}
-                </td>
-                <td>${escapeHtml(name)}</td>
-                <td><a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></td>
-                <td>${escapeHtml(subject)}</td>
-                <td>${formatDate(messageDate)}</td>
-                <td class="action-btns">
-                    <button class="action-btn view-btn" onclick="viewMessage('${messageId}')" title="View">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deleteMessage('${messageId}')" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `}).join('');
-        
-        await updateUnreadCount();
-        
-    } catch (error) {
-        console.error('❌ Error loading messages:', error);
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center error">
-            Error loading messages: ${error.message}
-        </td></tr>`;
-        showAlert('Error loading messages', 'error');
-    }
-}
-
-/**
- * View message details - FIXED
- */
-window.viewMessage = async function(id) {
-    try {
-        console.log('👁️ Viewing message ID:', id);
-        
-        if (!id) {
-            showAlert('Invalid message ID', 'error');
-            return;
-        }
-        
-        const response = await fetchWithAuth(`${API_URL}/messages/${id}`);
-        
-        if (!response.ok) {
-            if (response.status === 404) {
-                showAlert('Message not found. It may have been deleted.', 'error');
-            } else {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return;
-        }
-        
-        const message = await response.json();
-        await displayMessageDetails(message);
-        
-    } catch (error) {
-        console.error('❌ Error loading message:', error);
-        showAlert('Error loading message: ' + error.message, 'error');
-    }
-};
-
-/**
- * Display message details
- */
-async function displayMessageDetails(message) {
-    try {
-        console.log('📧 Message details:', message);
-        
-        const messageId = message._id || message.id;
-        
-        // Mark as read if not already read
-        if (!message.read) {
-            try {
-                await fetchWithAuth(`${API_URL}/messages/${messageId}/read`, { method: 'PUT' });
-                message.read = true;
-                updateUnreadCount();
-                loadMessages();
-            } catch (e) {
-                console.log('Error marking as read:', e);
-            }
-        }
-
-        const detailDiv = document.getElementById('messageDetail');
-        detailDiv.innerHTML = `
-            <div class="message-detail">
-                <div class="detail-row">
-                    <strong>From:</strong> 
-                    <span>${escapeHtml(message.name || 'Anonymous')} (${escapeHtml(message.email || 'No email')})</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Subject:</strong> 
-                    <span>${escapeHtml(message.subject || 'No Subject')}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Date:</strong> 
-                    <span>${formatDate(message.createdAt || message.date || new Date())}</span>
-                </div>
-                <div class="detail-row">
-                    <strong>Message:</strong>
-                    <div class="message-content">${escapeHtml(message.message || 'No message content').replace(/\n/g, '<br>')}</div>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('messageModal').classList.add('active');
-        window.currentMessageId = messageId;
-        window.currentMessageEmail = message.email;
-        
-    } catch (error) {
-        console.error('❌ Error displaying message:', error);
-        showAlert('Error displaying message', 'error');
-    }
-}
-
-/**
- * Update unread count - FIXED
- */
-async function updateUnreadCount() {
-    try {
-        const response = await fetchWithAuth(`${API_URL}/messages/unread/count`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('📧 Unread count:', data.count);
-        
-        const badge = document.getElementById('unread-badge');
-        if (badge) {
-            if (data.count > 0) {
-                badge.textContent = data.count;
-                badge.style.display = 'inline-block';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-    } catch (error) {
-        console.error('Error updating unread count:', error);
-    }
-}
-
-/**
- * Reply to message
- */
-window.replyToMessage = function() {
-    if (window.currentMessageEmail) {
-        window.location.href = `mailto:${window.currentMessageEmail}`;
-    }
-};
-
-/**
- * Delete current message
- */
-window.deleteCurrentMessage = async function() {
-    if (window.currentMessageId) {
-        await deleteMessage(window.currentMessageId);
-        closeMessageModal();
-    }
-};
-
-/**
- * Close message modal
- */
-window.closeMessageModal = function() {
-    document.getElementById('messageModal').classList.remove('active');
-    window.currentMessageId = null;
-    window.currentMessageEmail = null;
-};
-
-/**
- * Refresh messages
- */
-window.refreshMessages = function() {
-    loadMessages();
-    showAlert('Messages refreshed', 'info');
-};
-
-/**
- * Delete message - FIXED
- */
-window.deleteMessage = async function(id) {
-    if (!confirmAction('Delete this message?')) return;
-
-    try {
-        console.log('🗑️ Deleting message:', id);
-        
-        const response = await fetchWithAuth(`${API_URL}/messages/${id}`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Message deleted!');
-            loadMessages();
-            updateUnreadCount();
-            closeMessageModal();
+            alert('Testimonial added');
+            closeTestimonialModal();
+            loadTestimonials();
         } else {
-            throw new Error(data.message || 'Delete failed');
+            alert('Error adding testimonial');
         }
-    } catch (error) {
-        console.error('❌ Error deleting message:', error);
-        showAlert('Error deleting message: ' + error.message, 'error');
+    });
+};
+
+// Close testimonial modal
+window.closeTestimonialModal = function() {
+    const modal = document.getElementById('testimonialModal');
+    if (modal) modal.remove();
+};
+
+// Edit testimonial
+window.editTestimonial = async function(id) {
+    const res = await fetch(`${API_URL}/testimonials/${id}`);
+    const t = await res.json();
+    
+    // Create edit modal
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.id = 'editTestimonialModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Edit Testimonial</h3>
+            <form id="editTestimonialForm">
+                <input type="hidden" id="editTestimonialId" value="${t._id}">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="editTestimonialName" value="${t.name}" required>
+                </div>
+                <div class="form-group">
+                    <label>Position</label>
+                    <input type="text" id="editTestimonialPosition" value="${t.position || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Company</label>
+                    <input type="text" id="editTestimonialCompany" value="${t.company || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Content</label>
+                    <textarea id="editTestimonialContent" rows="3" required>${t.content}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Rating (1-5)</label>
+                    <input type="number" id="editTestimonialRating" min="1" max="5" value="${t.rating}">
+                </div>
+                <div class="form-group">
+                    <label>Image</label>
+                    <input type="file" id="editTestimonialImage" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary">Update</button>
+                <button type="button" class="btn btn-danger" onclick="closeEditTestimonialModal()">Cancel</button>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Add submit handler
+    document.getElementById('editTestimonialForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const id = document.getElementById('editTestimonialId').value;
+        const formData = new FormData();
+        formData.append('name', document.getElementById('editTestimonialName').value);
+        formData.append('position', document.getElementById('editTestimonialPosition').value);
+        formData.append('company', document.getElementById('editTestimonialCompany').value);
+        formData.append('content', document.getElementById('editTestimonialContent').value);
+        formData.append('rating', document.getElementById('editTestimonialRating').value);
+        
+        const img = document.getElementById('editTestimonialImage').files[0];
+        if (img) formData.append('image', img);
+        
+        const res = await fetchWithAuth(`${API_URL}/testimonials/${id}`, {
+            method: 'PUT',
+            body: formData
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            alert('Testimonial updated');
+            closeEditTestimonialModal();
+            loadTestimonials();
+        } else {
+            alert('Error updating testimonial');
+        }
+    });
+};
+
+// Close edit testimonial modal
+window.closeEditTestimonialModal = function() {
+    const modal = document.getElementById('editTestimonialModal');
+    if (modal) modal.remove();
+};
+
+// Delete testimonial
+window.deleteTestimonial = async function(id) {
+    if (!confirm('Delete this testimonial?')) return;
+    
+    const res = await fetchWithAuth(`${API_URL}/testimonials/${id}`, {
+        method: 'DELETE'
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+        alert('Testimonial deleted');
+        loadTestimonials();
+    } else {
+        alert('Error deleting testimonial');
     }
 };
 
-// ============================================
-// MESSAGE FILTERS
-// ============================================
-document.querySelectorAll('[data-message-filter]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-message-filter]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+// Add to section navigation
+// 'testimonials' case थप्नुहोस् showSection function मा
+// case 'testimonials': loadTestimonials(); break;
 
-        const filter = btn.dataset.messageFilter;
-        const rows = document.querySelectorAll('#messagesList tr');
-        
-        rows.forEach(row => {
-            if (filter === 'all') {
-                row.style.display = '';
-            } else if (filter === 'unread') {
-                row.style.display = row.classList.contains('unread') ? '' : 'none';
-            } else if (filter === 'read') {
-                row.style.display = !row.classList.contains('unread') ? '' : 'none';
-            }
-        });
-    });
-});
+window.viewMessage = async (id) => {
+    await fetchWithAuth(`${API_URL}/messages/${id}/read`, { method: 'PUT' });
+    loadMessages();
+    alert('Message viewed');
+};
 
-// ============================================
-// MODAL FUNCTIONS
-// ============================================
-
-/**
- * Close modal
- */
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) modal.classList.remove('active');
-}
-
-window.closeModal = closeModal;
-
-// ============================================
-// LOGOUT
-// ============================================
-
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        localStorage.clear();
-        window.location.href = 'index.html?loggedout=true';
+window.deleteMessage = async (id) => {
+    if (confirm('Delete?')) {
+        await fetchWithAuth(`${API_URL}/messages/${id}`, { method: 'DELETE' });
+        loadMessages();
     }
-}
+};
 
-document.getElementById('logoutBtn')?.addEventListener('click', logout);
+// Logout
+window.logout = () => {
+    localStorage.clear();
+    window.location.href = 'index.html';
+};
 
-// ============================================
-// SESSION MONITORING
-// ============================================
-
-// Check session every minute
-setInterval(() => {
-    if (!checkAuth()) {
-        console.log('Session expired - logging out');
-        redirectToLogin('session_expired');
-    }
-}, 60000);
-
-// ============================================
-// INITIALIZATION
-// ============================================
-
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('📊 Admin Dashboard Initialized');
-    
-    if (!checkAuth()) {
-        redirectToLogin('session_expired');
-        return;
-    }
-    
-    showSection('dashboard');
-    
-    await loadDashboard();
-    await updateUnreadCount();
-    
-    const adminUser = localStorage.getItem('adminUser') || 'Admin';
-    document.getElementById('adminUsername').textContent = adminUser;
-    
-    console.log('✅ Admin Panel Ready');
-});
+// Initial load
+loadDashboard();

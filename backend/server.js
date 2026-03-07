@@ -1,18 +1,12 @@
-// backend/server.js - Complete Backend with MongoDB and Fixed Authentication
-// Run with: npm run dev
-
 const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
-const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
+const cors = require('cors');
 require('dotenv').config();
 
-// ============================================
-// MODELS IMPORT
-// ============================================
 const Profile = require('./models/Profile');
 const Project = require('./models/Project');
 const Skill = require('./models/Skill');
@@ -22,775 +16,271 @@ const Settings = require('./models/Settings');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ============================================
-// CORS MIDDLEWARE - ULTIMATE FIX
-// ============================================
+// CORS
+app.use(cors({ origin: '*', methods: ['GET','POST','PUT','DELETE','OPTIONS'] }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// सबैभन्दा पहिले CORS middleware राख्नुहोस्
-app.use((req, res, next) => {
-    // सबै domains लाई allow गर्ने
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    next();
-});
-
-// Body parser middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// ============================================
-// UPLOADS FOLDER SETUP
-// ============================================
+// Uploads
 const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
 
-// ============================================
-// MONGODB CONNECTION
-// ============================================
-console.log('\n' + '='.repeat(60));
-console.log('🔄 Connecting to MongoDB...');
-console.log('='.repeat(60));
+// MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('✅ MongoDB Connected'))
+    .catch(err => console.error('❌ MongoDB Error:', err));
 
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-    .then(() => {
-        console.log('✅ MONGODB CONNECTED SUCCESSFULLY');
-        console.log('='.repeat(60));
-        console.log(`📍 Database: ${mongoose.connection.name}`);
-        console.log(`📍 Host: ${mongoose.connection.host}`);
-        console.log('='.repeat(60) + '\n');
-        initializeData();
-    })
-    .catch(err => {
-        console.error('❌ MongoDB Connection Error:', err.message);
-        console.log('\n💡 Tips:');
-        console.log('1. Check your password in .env file');
-        console.log('2. Make sure MongoDB Atlas IP whitelist has 0.0.0.0/0');
-        console.log('3. Check your network connection\n');
-        process.exit(1);
-    });
-
-// ============================================
-// MULTER CONFIGURATION
-// ============================================
+// Multer
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadsDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
+    destination: (req, file, cb) => cb(null, uploadsDir),
+    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
+const upload = multer({ storage });
 
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif|webp|ico/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-
-        if (mimetype && extname) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed'));
-        }
-    }
-});
-
-// ============================================
-// AUTHENTICATION MIDDLEWARE
-// ============================================
+// Auth
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({
-            success: false,
-            message: 'No token provided'
-        });
-    }
-
+    if (!token) return res.status(401).json({ success: false, message: 'No token' });
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({
-                success: false,
-                message: 'Invalid or expired token'
-            });
-        }
-        req.user = user;
-        next();
+        if (err) return res.status(403).json({ success: false, message: 'Invalid token' });
+        req.user = user; next();
     });
 };
 
-// ============================================
-// ROOT ROUTE
-// ============================================
-app.get('/', (req, res) => {
-    res.json({
-        success: true,
-        message: '🚀 Backend API is running',
-        version: '1.0.0',
-        timestamp: new Date().toISOString(),
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        endpoints: {
-            test: '/api/test',
-            profile: '/api/profile',
-            projects: '/api/projects',
-            skills: '/api/skills',
-            messages: '/api/messages',
-            settings: '/api/settings',
-            uploads: '/api/uploads',
-            backup: '/api/backup',
-            admin_login: '/api/admin/login'
-        }
-    });
-});
+// Routes
+app.get('/', (req, res) => res.json({ success: true, message: 'Backend API running' }));
+app.get('/api/test', (req, res) => res.json({ success: true, message: 'Server OK' }));
+
+
+
 
 // ============================================
-// TEST ROUTE
+// TESTIMONIALS API - ADD THESE ROUTES
 // ============================================
-app.get('/api/test', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Server is running!',
-        timestamp: new Date().toISOString(),
-        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        endpoints: [
-            '/api/profile',
-            '/api/projects',
-            '/api/skills',
-            '/api/messages',
-            '/api/settings',
-            '/api/uploads',
-            '/api/backup',
-            '/api/admin/login',
-            '/api/test'
-        ]
-    });
-});
 
-// ============================================
-// INITIALIZE DEFAULT DATA
-// ============================================
-async function initializeData() {
+// Get all testimonials
+app.get('/api/testimonials', async (req, res) => {
     try {
-        // Profile
-        const profileCount = await Profile.countDocuments();
-        if (profileCount === 0) {
-            await Profile.create({
-                name: "Dhiraj Dhakal",
-                title: "BICTE Student | Developer | Tech Enthusiast",
-                bio: "Crafting digital experiences with code and creativity.",
-                aboutText: "BICTE student passionate about web development.",
-                email: "dhiraj@example.com",
-                phone: "+977 9808704655",
-                location: "Morang, Nepal",
-                country: "Nepal",
-                experience: "2+",
-                initials: "D",
-                education: "BICTE (2022 - Present)",
-                profileImage: null,
-                aboutImage: null,
-                cvLink: "#",
-                website: "www.dhiraj.com.np",
-                shortBio: "Creating digital experiences that make a difference.",
-                contactTitle: "Let's work together",
-                contactText: "I'm always interested in hearing about new opportunities.",
-                stats: {
-                    projects: "15+",
-                    certificates: "8",
-                    clients: "10+",
-                    years: "2"
-                },
-                socialLinks: {
-                    github: "https://github.com",
-                    linkedin: "https://linkedin.com",
-                    twitter: "https://twitter.com",
-                    instagram: "https://instagram.com",
-                    facebook: "",
-                    youtube: ""
-                }
-            });
-            console.log('✅ Created default profile');
-        }
-
-        // Projects
-        const projectCount = await Project.countDocuments();
-        if (projectCount === 0) {
-            await Project.create([
-                {
-                    title: "Smart Attendance System",
-                    description: "QR code based attendance system",
-                    technologies: ["React", "Node.js", "MongoDB"],
-                    github: "https://github.com",
-                    demo: "https://demo.com",
-                    featured: true
-                },
-                {
-                    title: "E-Learning Platform",
-                    description: "Online learning platform",
-                    technologies: ["Next.js", "Tailwind", "Prisma"],
-                    github: "https://github.com",
-                    demo: "https://demo.com",
-                    featured: true
-                },
-                {
-                    title: "Weather App",
-                    description: "Real-time weather application",
-                    technologies: ["React", "API", "Chart.js"],
-                    github: "https://github.com",
-                    demo: "https://demo.com",
-                    featured: false
-                }
-            ]);
-            console.log('✅ Created default projects');
-        }
-
-        // Skills
-        const skillCount = await Skill.countDocuments();
-        if (skillCount === 0) {
-            await Skill.create([
-                { name: "HTML5", level: 95, icon: "fab fa-html5", color: "#E34F26", category: "frontend" },
-                { name: "CSS3", level: 92, icon: "fab fa-css3-alt", color: "#1572B6", category: "frontend" },
-                { name: "JavaScript", level: 88, icon: "fab fa-js", color: "#F7DF1E", category: "frontend" },
-                { name: "React", level: 85, icon: "fab fa-react", color: "#61DAFB", category: "frontend" },
-                { name: "Node.js", level: 78, icon: "fab fa-node", color: "#339933", category: "backend" },
-                { name: "PHP", level: 70, icon: "fab fa-php", color: "#777BB4", category: "backend" },
-                { name: "MySQL", level: 75, icon: "fas fa-database", color: "#4479A1", category: "database" },
-                { name: "Git", level: 85, icon: "fab fa-git-alt", color: "#F05032", category: "tools" }
-            ]);
-            console.log('✅ Created default skills');
-        }
-
-        // Settings
-        const settingsCount = await Settings.countDocuments();
-        if (settingsCount === 0) {
-            await Settings.create({
-                siteTitle: "Dhiraj Dhakal - Portfolio",
-                siteDescription: "BICTE Student | Developer | Tech Enthusiast",
-                adminEmail: "admin@example.com",
-                maintenanceMode: false,
-                copyrightText: "All rights reserved",
-                siteLanguage: "en",
-                favicon: null
-            });
-            console.log('✅ Created default settings');
-        }
-
-        console.log('✅ All default data initialized\n');
-    } catch (error) {
-        console.error('Error initializing data:', error);
-    }
-}
-
-// ============================================
-// ADMIN LOGIN
-// ============================================
-app.post('/api/admin/login', (req, res) => {
-    const { username, password } = req.body;
-
-    console.log('🔐 Login attempt:', { username });
-
-    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
-        const token = jwt.sign(
-            { username, loginTime: Date.now() },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
-        console.log('✅ Login successful');
-        res.json({ success: true, token, message: 'Login successful' });
-    } else {
-        console.log('❌ Login failed');
-        res.status(401).json({ success: false, message: 'Invalid username or password' });
-    }
-});
-
-// ============================================
-// PROFILE API - FIXED
-// ============================================
-app.get('/api/profile', async (req, res) => {
-    try {
-        let profile = await Profile.findOne();
-        if (!profile) profile = await Profile.create({});
-        res.json(profile);
+        const testimonials = await Testimonial.find().sort('-createdAt');
+        res.json(testimonials);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
+});
+
+// Get single testimonial
+app.get('/api/testimonials/:id', async (req, res) => {
+    try {
+        const testimonial = await Testimonial.findById(req.params.id);
+        if (!testimonial) {
+            return res.status(404).json({ success: false, message: 'Testimonial not found' });
+        }
+        res.json(testimonial);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Add testimonial (admin only)
+app.post('/api/testimonials', authenticateToken, upload.single('image'), async (req, res) => {
+    try {
+        const testimonialData = {
+            name: req.body.name,
+            position: req.body.position || '',
+            company: req.body.company || '',
+            content: req.body.content,
+            rating: parseInt(req.body.rating) || 5,
+            image: req.file ? `/uploads/${req.file.filename}` : null
+        };
+        
+        const testimonial = new Testimonial(testimonialData);
+        await testimonial.save();
+        res.status(201).json({ success: true, testimonial });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update testimonial (admin only)
+app.put('/api/testimonials/:id', authenticateToken, upload.single('image'), async (req, res) => {
+    try {
+        const testimonial = await Testimonial.findById(req.params.id);
+        if (!testimonial) {
+            return res.status(404).json({ success: false, message: 'Testimonial not found' });
+        }
+        
+        testimonial.name = req.body.name || testimonial.name;
+        testimonial.position = req.body.position || testimonial.position;
+        testimonial.company = req.body.company || testimonial.company;
+        testimonial.content = req.body.content || testimonial.content;
+        testimonial.rating = parseInt(req.body.rating) || testimonial.rating;
+        
+        if (req.file) {
+            testimonial.image = `/uploads/${req.file.filename}`;
+        }
+        
+        await testimonial.save();
+        res.json({ success: true, testimonial });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete testimonial (admin only)
+app.delete('/api/testimonials/:id', authenticateToken, async (req, res) => {
+    try {
+        await Testimonial.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: 'Testimonial deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+
+
+// Admin Login
+app.post('/api/admin/login', (req, res) => {
+    const { username, password } = req.body;
+    if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+        const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '24h' });
+        res.json({ success: true, token });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+});
+
+// Profile
+app.get('/api/profile', async (req, res) => {
+    let profile = await Profile.findOne();
+    if (!profile) profile = await Profile.create({});
+    res.json(profile);
 });
 
 app.put('/api/profile', authenticateToken, upload.fields([
     { name: 'profileImage', maxCount: 1 },
     { name: 'aboutImage', maxCount: 1 }
 ]), async (req, res) => {
-    try {
-        let profile = await Profile.findOne();
-        if (!profile) profile = new Profile();
-
-        console.log('📥 Profile update received');
-        console.log('Body:', req.body);
-        console.log('Files:', req.files);
-
-        // Update text fields
-        const textFields = [
-            'name', 'title', 'bio', 'aboutText', 'email', 'phone',
-            'location', 'country', 'experience', 'initials', 'education',
-            'cvLink', 'website', 'shortBio', 'contactTitle', 'contactText'
-        ];
-
-        textFields.forEach(field => {
-            if (req.body[field] !== undefined) {
-                profile[field] = req.body[field];
-            }
-        });
-
-        // Update stats
-        if (req.body.stats) {
-            try {
-                profile.stats = JSON.parse(req.body.stats);
-            } catch (e) {}
-        }
-
-        // Update social links
-        if (req.body.socialLinks) {
-            try {
-                const socialLinks = JSON.parse(req.body.socialLinks);
-                console.log('📥 Social links received:', socialLinks);
-                
-                profile.socialLinks = {
-                    ...profile.socialLinks,
-                    ...socialLinks
-                };
-            } catch (e) {}
-        }
-
-        // Update profile image
-        if (req.files && req.files.profileImage) {
-            if (profile.profileImage) {
-                const oldImagePath = path.join(uploadsDir, path.basename(profile.profileImage));
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
-                }
-            }
-            profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
-            console.log('✅ Profile image updated:', profile.profileImage);
-        }
-
-        // Update about image
-        if (req.files && req.files.aboutImage) {
-            if (profile.aboutImage) {
-                const oldImagePath = path.join(uploadsDir, path.basename(profile.aboutImage));
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
-                }
-            }
-            profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
-            console.log('✅ About image updated:', profile.aboutImage);
-        }
-
-        await profile.save();
-        console.log('✅ Profile saved successfully');
-        
-        res.json({ success: true, message: 'Profile updated successfully', profile });
-        
-    } catch (error) {
-        console.error('❌ Profile update error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
+    let profile = await Profile.findOne();
+    if (!profile) profile = new Profile();
+    
+    const fields = ['name','title','bio','aboutText','email','phone','location','country','experience','initials','education'];
+    fields.forEach(f => { if (req.body[f]) profile[f] = req.body[f]; });
+    
+    if (req.body.socialLinks) profile.socialLinks = JSON.parse(req.body.socialLinks);
+    if (req.files?.profileImage) profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
+    if (req.files?.aboutImage) profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
+    
+    await profile.save();
+    res.json({ success: true, profile });
 });
 
-// ============================================
-// PROJECTS API
-// ============================================
-app.get('/api/projects', async (req, res) => {
-    try {
-        const projects = await Project.find().sort('-createdAt');
-        res.json(projects);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
+// Projects
+app.get('/api/projects', async (req, res) => res.json(await Project.find().sort('-createdAt')));
 app.get('/api/projects/:id', async (req, res) => {
-    try {
-        const project = await Project.findById(req.params.id);
-        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
-        res.json(project);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    const p = await Project.findById(req.params.id);
+    p ? res.json(p) : res.status(404).json({ success: false });
 });
 
 app.post('/api/projects', authenticateToken, upload.single('image'), async (req, res) => {
-    try {
-        const newProject = new Project({
-            title: req.body.title,
-            description: req.body.description,
-            technologies: req.body.technologies ? req.body.technologies.split(',').map(t => t.trim()) : [],
-            github: req.body.github || '',
-            demo: req.body.demo || '',
-            image: req.file ? `/uploads/${req.file.filename}` : null,
-            featured: req.body.featured === 'true'
-        });
-
-        await newProject.save();
-        res.status(201).json({ success: true, message: 'Project added successfully', project: newProject });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    const project = new Project({
+        title: req.body.title,
+        description: req.body.description,
+        technologies: req.body.technologies?.split(',').map(t => t.trim()) || [],
+        github: req.body.github,
+        demo: req.body.demo,
+        featured: req.body.featured === 'true',
+        image: req.file ? `/uploads/${req.file.filename}` : null
+    });
+    await project.save();
+    res.status(201).json({ success: true, project });
 });
 
 app.put('/api/projects/:id', authenticateToken, upload.single('image'), async (req, res) => {
-    try {
-        const project = await Project.findById(req.params.id);
-        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
-
-        project.title = req.body.title || project.title;
-        project.description = req.body.description || project.description;
-        project.technologies = req.body.technologies ? req.body.technologies.split(',').map(t => t.trim()) : project.technologies;
-        project.github = req.body.github || project.github;
-        project.demo = req.body.demo || project.demo;
-        project.featured = req.body.featured === 'true';
-
-        if (req.file) project.image = `/uploads/${req.file.filename}`;
-
-        await project.save();
-        res.json({ success: true, message: 'Project updated successfully', project });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ success: false });
+    
+    project.title = req.body.title || project.title;
+    project.description = req.body.description || project.description;
+    project.technologies = req.body.technologies ? req.body.technologies.split(',').map(t => t.trim()) : project.technologies;
+    project.github = req.body.github || project.github;
+    project.demo = req.body.demo || project.demo;
+    project.featured = req.body.featured === 'true';
+    if (req.file) project.image = `/uploads/${req.file.filename}`;
+    
+    await project.save();
+    res.json({ success: true, project });
 });
 
 app.delete('/api/projects/:id', authenticateToken, async (req, res) => {
-    try {
-        await Project.findByIdAndDelete(req.params.id);
-        res.json({ success: true, message: 'Project deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    await Project.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
 });
 
-// ============================================
-// SKILLS API
-// ============================================
-app.get('/api/skills', async (req, res) => {
-    try {
-        const skills = await Skill.find().sort('-level');
-        res.json(skills);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
+// Skills
+app.get('/api/skills', async (req, res) => res.json(await Skill.find().sort('-level')));
 app.post('/api/skills', authenticateToken, async (req, res) => {
-    try {
-        const newSkill = new Skill(req.body);
-        await newSkill.save();
-        res.status(201).json({ success: true, skill: newSkill });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    const skill = new Skill(req.body);
+    await skill.save();
+    res.status(201).json({ success: true, skill });
 });
-
 app.put('/api/skills/:id', authenticateToken, async (req, res) => {
-    try {
-        const skill = await Skill.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json({ success: true, skill });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    const skill = await Skill.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json({ success: true, skill });
 });
-
 app.delete('/api/skills/:id', authenticateToken, async (req, res) => {
-    try {
-        await Skill.findByIdAndDelete(req.params.id);
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    await Skill.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
 });
 
-// ============================================
-// MESSAGES API - COMPLETE FIX
-// ============================================
-
-// POST - नयाँ message
+// Messages
 app.post('/api/messages', async (req, res) => {
-    try {
-        const newMessage = new Message({
-            name: req.body.name,
-            email: req.body.email,
-            subject: req.body.subject || 'No Subject',
-            message: req.body.message
-        });
-        await newMessage.save();
-        console.log('✅ Message saved with ID:', newMessage._id);
-        res.status(201).json({ 
-            success: true, 
-            message: 'Message sent successfully!',
-            id: newMessage._id 
-        });
-    } catch (error) {
-        console.error('❌ Error saving message:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
+    const message = new Message(req.body);
+    await message.save();
+    res.status(201).json({ success: true, message: 'Message sent' });
 });
-
-// GET - सबै messages
-app.get('/api/messages', authenticateToken, async (req, res) => {
-    try {
-        const messages = await Message.find().sort('-createdAt');
-        console.log(`✅ Found ${messages.length} messages`);
-        res.json(messages);
-    } catch (error) {
-        console.error('❌ Error fetching messages:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// GET - unread count
+app.get('/api/messages', authenticateToken, async (req, res) => res.json(await Message.find().sort('-createdAt')));
 app.get('/api/messages/unread/count', authenticateToken, async (req, res) => {
-    try {
-        const count = await Message.countDocuments({ read: false });
-        console.log('📧 Unread count:', count);
-        res.json({ count });
-    } catch (error) {
-        console.error('❌ Error getting unread count:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
+    const count = await Message.countDocuments({ read: false });
+    res.json({ count });
 });
-
-// GET - single message by ID
-app.get('/api/messages/:id', authenticateToken, async (req, res) => {
-    try {
-        const messageId = req.params.id;
-        console.log('🔍 Looking for message ID:', messageId);
-        
-        // Validate ID format
-        if (!messageId.match(/^[0-9a-fA-F]{24}$/)) {
-            console.log('❌ Invalid ID format');
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid message ID format' 
-            });
-        }
-        
-        const message = await Message.findById(messageId);
-        
-        if (!message) {
-            console.log('❌ Message not found:', messageId);
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Message not found' 
-            });
-        }
-        
-        console.log('✅ Message found:', message._id);
-        res.json(message);
-    } catch (error) {
-        console.error('❌ Error fetching message:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// PUT - mark as read
 app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
-    try {
-        const messageId = req.params.id;
-        console.log('📝 Marking message as read:', messageId);
-        
-        const message = await Message.findById(messageId);
-        
-        if (!message) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Message not found' 
-            });
-        }
-        
-        message.read = true;
-        await message.save();
-        
-        console.log('✅ Message marked as read');
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Error marking message as read:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
+    await Message.findByIdAndUpdate(req.params.id, { read: true });
+    res.json({ success: true });
 });
-
-// DELETE - message
 app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
-    try {
-        const messageId = req.params.id;
-        console.log('🗑️ Deleting message:', messageId);
-        
-        const message = await Message.findByIdAndDelete(messageId);
-        
-        if (!message) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Message not found' 
-            });
-        }
-        
-        console.log('✅ Message deleted');
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Error deleting message:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
+    await Message.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
 });
 
-// ============================================
-// SETTINGS API
-// ============================================
+// Settings
 app.get('/api/settings', async (req, res) => {
-    try {
-        let settings = await Settings.findOne();
-        if (!settings) settings = await Settings.create({});
-        res.json(settings);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    let settings = await Settings.findOne();
+    if (!settings) settings = await Settings.create({});
+    res.json(settings);
 });
-
 app.put('/api/settings', authenticateToken, async (req, res) => {
-    try {
-        let settings = await Settings.findOne();
-        if (!settings) settings = new Settings();
-        Object.assign(settings, req.body);
-        await settings.save();
-        res.json({ success: true, settings });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    let settings = await Settings.findOne();
+    if (!settings) settings = new Settings();
+    Object.assign(settings, req.body);
+    await settings.save();
+    res.json({ success: true, settings });
 });
 
-// ============================================
-// UPLOADS API
-// ============================================
+// Uploads
 app.get('/api/uploads', authenticateToken, (req, res) => {
-    fs.readdir(uploadsDir, (err, files) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
-        res.json({ files });
-    });
+    fs.readdir(uploadsDir, (err, files) => res.json({ files: err ? [] : files }));
 });
-
 app.delete('/api/uploads/:filename', authenticateToken, (req, res) => {
     const filepath = path.join(uploadsDir, req.params.filename);
-    if (fs.existsSync(filepath)) {
-        fs.unlinkSync(filepath);
-        res.json({ success: true });
-    } else {
-        res.status(404).json({ success: false, message: 'File not found' });
-    }
+    if (fs.existsSync(filepath)) { fs.unlinkSync(filepath); res.json({ success: true }); }
+    else res.status(404).json({ success: false, message: 'File not found' });
 });
 
-// ============================================
-// BACKUP & RESTORE API
-// ============================================
-app.get('/api/backup', authenticateToken, async (req, res) => {
-    try {
-        const backup = {
-            profile: await Profile.findOne(),
-            projects: await Project.find(),
-            skills: await Skill.find(),
-            settings: await Settings.findOne(),
-            timestamp: new Date().toISOString()
-        };
-        res.json(backup);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-app.post('/api/restore', authenticateToken, async (req, res) => {
-    try {
-        const backup = req.body;
-        
-        await Profile.deleteMany({});
-        await Profile.create(backup.profile);
-        
-        await Project.deleteMany({});
-        await Project.insertMany(backup.projects);
-        
-        await Skill.deleteMany({});
-        await Skill.insertMany(backup.skills);
-        
-        await Settings.deleteMany({});
-        await Settings.create(backup.settings);
-        
-        res.json({ success: true, message: 'Data restored successfully' });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// ============================================
-// SERVE STATIC FILES
-// ============================================
-app.use(express.static(path.join(__dirname, '..')));
-
-// ============================================
-// 404 HANDLER
-// ============================================
-app.use('*', (req, res) => {
-    if (req.originalUrl.startsWith('/api/')) {
-        res.status(404).json({ success: false, message: 'API endpoint not found' });
-    } else {
-        const frontend404Path = path.join(__dirname, '../404.html');
-        if (fs.existsSync(frontend404Path)) {
-            res.sendFile(frontend404Path);
-        } else {
-            res.status(404).send('404 Not Found');
-        }
-    }
-});
-
-// ============================================
-// ERROR HANDLING MIDDLEWARE
-// ============================================
-app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-    res.status(500).json({ 
-        success: false, 
-        message: err.message || 'Internal server error'
-    });
-});
-
-// ============================================
-// START SERVER
-// ============================================
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n' + '='.repeat(60));
-    console.log('✅ SERVER STARTED SUCCESSFULLY');
-    console.log('='.repeat(60));
-    console.log(`📍 PORT: ${PORT}`);
-    console.log(`📍 URL: http://localhost:${PORT}`);
-    console.log(`📍 Test API: http://localhost:${PORT}/api/test`);
-    console.log('='.repeat(60));
-    console.log(`📁 Uploads Directory: ${uploadsDir}`);
-    console.log('='.repeat(60));
-    console.log('🔐 Admin Login:');
-    console.log(`   Username: ${process.env.ADMIN_USERNAME || 'admin'}`);
-    console.log(`   Password: ${process.env.ADMIN_PASSWORD || 'admin123'}`);
-    console.log('='.repeat(60) + '\n');
+    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`📍 ${PORT}`);
 });
