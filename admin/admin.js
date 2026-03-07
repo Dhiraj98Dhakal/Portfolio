@@ -707,28 +707,41 @@ window.deleteSkill = async function(id) {
     }
 };
 
-// ========== SOCIAL LINKS ==========
+// ============================================
+// SOCIAL LINKS - FIXED VERSION
+// ============================================
+
+/**
+ * Load social links
+ */
 async function loadSocialLinks() {
     try {
+        console.log('📥 Loading social links...');
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
         const links = profile.socialLinks || {};
+        
+        console.log('📥 Received social links:', links);
 
-        setValue('socialGithub', links.github);
-        setValue('socialLinkedin', links.linkedin);
-        setValue('socialTwitter', links.twitter);
-        setValue('socialInstagram', links.instagram);
-        setValue('socialFacebook', links.facebook);
-        setValue('socialYoutube', links.youtube);
+        // सबै platforms को लागि set गर्ने
+        setValue('socialGithub', links.github || '');
+        setValue('socialLinkedin', links.linkedin || '');
+        setValue('socialTwitter', links.twitter || '');
+        setValue('socialInstagram', links.instagram || '');
+        setValue('socialFacebook', links.facebook || '');
+        setValue('socialYoutube', links.youtube || '');
         
     } catch (error) {
-        console.error('Error loading social links:', error);
+        console.error('❌ Error loading social links:', error);
+        showAlert('Error loading social links', 'error');
     }
 }
 
+// Social form submit - FIXED
 document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    // सबै social links collect गर्ने
     const socialLinks = {
         github: document.getElementById('socialGithub')?.value || '',
         linkedin: document.getElementById('socialLinkedin')?.value || '',
@@ -738,10 +751,14 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
         youtube: document.getElementById('socialYoutube')?.value || ''
     };
 
+    console.log('📤 Sending social links:', socialLinks);
+
     try {
         const response = await fetchWithAuth(`${API_URL}/profile`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({ socialLinks })
         });
 
@@ -749,9 +766,14 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
         
         if (data.success) {
             showAlert('Social links updated successfully!');
+            console.log('✅ Social links update successful:', data);
+            loadSocialLinks(); // Reload to confirm
+        } else {
+            showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
         }
     } catch (error) {
-        showAlert('Error updating social links', 'error');
+        console.error('❌ Social links update error:', error);
+        showAlert('Error updating social links: ' + error.message, 'error');
     }
 });
 

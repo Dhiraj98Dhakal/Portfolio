@@ -328,14 +328,19 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ============================================
-// PROFILE API
+// PROFILE API - FIXED VERSION
 // ============================================
+
 app.get('/api/profile', async (req, res) => {
     try {
         let profile = await Profile.findOne();
-        if (!profile) profile = await Profile.create({});
+        if (!profile) {
+            profile = await Profile.create({});
+        }
+        console.log('📤 Profile data sent:', profile);
         res.json(profile);
     } catch (error) {
+        console.error('❌ Profile fetch error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -346,8 +351,14 @@ app.put('/api/profile', authenticateToken, upload.fields([
 ]), async (req, res) => {
     try {
         let profile = await Profile.findOne();
-        if (!profile) profile = new Profile();
+        if (!profile) {
+            profile = new Profile();
+        }
 
+        console.log('📥 Profile update request body:', req.body);
+        console.log('📥 Profile update files:', req.files);
+
+        // Update text fields
         const textFields = [
             'name', 'title', 'bio', 'aboutText', 'email', 'phone',
             'location', 'country', 'experience', 'initials', 'education',
@@ -357,29 +368,81 @@ app.put('/api/profile', authenticateToken, upload.fields([
         textFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 profile[field] = req.body[field];
+                console.log(`✅ Updated ${field}:`, req.body[field]);
             }
         });
 
+        // Update stats
         if (req.body.stats) {
-            try { profile.stats = JSON.parse(req.body.stats); } catch (e) {}
+            try {
+                profile.stats = JSON.parse(req.body.stats);
+                console.log('✅ Updated stats:', profile.stats);
+            } catch (e) {
+                console.log('Stats parse error:', e);
+            }
         }
 
+        // FIXED: Update social links - सीधा object बाट
         if (req.body.socialLinks) {
-            try { profile.socialLinks = JSON.parse(req.body.socialLinks); } catch (e) {}
+            try {
+                const socialLinks = JSON.parse(req.body.socialLinks);
+                console.log('📥 Received social links:', socialLinks);
+                
+                // प्रत्येक platform को लागि update गर्ने
+                if (profile.socialLinks) {
+                    Object.keys(socialLinks).forEach(key => {
+                        profile.socialLinks[key] = socialLinks[key];
+                        console.log(`✅ Updated social link ${key}:`, socialLinks[key]);
+                    });
+                } else {
+                    profile.socialLinks = socialLinks;
+                }
+            } catch (e) {
+                console.log('Social links parse error:', e);
+            }
         }
 
+        // Update profile image
         if (req.files && req.files.profileImage) {
+            console.log('📸 New profile image:', req.files.profileImage[0].filename);
+            if (profile.profileImage) {
+                const oldImagePath = path.join(uploadsDir, path.basename(profile.profileImage));
+                if (fs.existsSync(oldImagePath)) {
+                    fs.unlinkSync(oldImagePath);
+                    console.log('🗑️ Deleted old profile image');
+                }
+            }
             profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
         }
 
+        // Update about image
         if (req.files && req.files.aboutImage) {
+            console.log('📸 New about image:', req.files.aboutImage[0].filename);
+            if (profile.aboutImage) {
+                const oldImagePath = path.join(uploadsDir, path.basename(profile.aboutImage));
+                if (fs.existsSync(oldImagePath)) {
+                    fs.unlinkSync(oldImagePath);
+                    console.log('🗑️ Deleted old about image');
+                }
+            }
             profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
         }
 
         await profile.save();
-        res.json({ success: true, message: 'Profile updated successfully', profile });
+        console.log('✅ Profile saved successfully:', profile);
+        
+        res.json({
+            success: true,
+            message: 'Profile updated successfully',
+            profile: profile
+        });
+        
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        console.error('❌ Profile update error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
     }
 });
 
