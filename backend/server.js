@@ -606,6 +606,7 @@ app.put('/api/settings', authenticateToken, upload.single('favicon'), async (req
 // ============================================
 // TESTIMONIALS API
 // ============================================
+// Testimonials API - Add this
 app.get('/api/testimonials', async (req, res) => {
     try {
         const testimonials = await Testimonial.find().sort('-createdAt');
