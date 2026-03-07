@@ -578,22 +578,25 @@ window.deleteSkill = async function(id) {
     }
 };
 
-// ========== SOCIAL LINKS ==========
+// ========== SOCIAL LINKS - COMPLETE FIX ==========
 async function loadSocial() {
     try {
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
         const links = profile.socialLinks || {};
 
-        setValue('socialGithub', links.github);
-        setValue('socialLinkedin', links.linkedin);
-        setValue('socialTwitter', links.twitter);
-        setValue('socialInstagram', links.instagram);
-        setValue('socialFacebook', links.facebook);
-        setValue('socialYoutube', links.youtube);
+        console.log('📥 Loading social links:', links);
+
+        setValue('socialGithub', links.github || '');
+        setValue('socialLinkedin', links.linkedin || '');
+        setValue('socialTwitter', links.twitter || '');
+        setValue('socialInstagram', links.instagram || '');
+        setValue('socialFacebook', links.facebook || '');
+        setValue('socialYoutube', links.youtube || '');
         
     } catch (error) {
         console.error('Error loading social links:', error);
+        showAlert('Error loading social links', 'error');
     }
 }
 
@@ -609,6 +612,13 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
         youtube: document.getElementById('socialYoutube')?.value || ''
     };
 
+    console.log('📤 Sending social links:', socialLinks);
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    submitBtn.disabled = true;
+
     try {
         const response = await fetchWithAuth(`${API_URL}/profile`, {
             method: 'PUT',
@@ -620,11 +630,22 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
         
         if (data.success) {
             showAlert('Social links updated successfully!');
+            console.log('✅ Social links update successful:', data.profile?.socialLinks);
+            
+            // Verify by loading again
+            await loadSocial();
+            
+            // Trigger frontend refresh
+            localStorage.setItem('adminUpdate', Date.now());
         } else {
-            showAlert('Error updating social links', 'error');
+            showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
         }
     } catch (error) {
+        console.error('❌ Social links update error:', error);
         showAlert('Error updating social links', 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 });
 
