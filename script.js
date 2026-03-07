@@ -5,7 +5,7 @@
 // ========== CONFIGURATION ==========
 const API_URL = 'https://portfolio-xqwu.onrender.com/api';
 const BASE_URL = 'https://portfolio-xqwu.onrender.com';
-const REFRESH_INTERVAL = 30000; // 30 seconds
+const REFRESH_INTERVAL = 60000; // 60 seconds
 
 console.log('✅ Frontend JS Loaded');
 console.log('📍 API URL:', API_URL);
@@ -67,13 +67,13 @@ async function loadAllData() {
         // Load skills
         const skillsRes = await fetch(`${API_URL}/skills`);
         const skills = await skillsRes.json();
-        console.log('📥 Skills data:', skills);
+        console.log('📥 Skills data:', skills.length);
         updateSkills(skills);
 
         // Load projects
         const projectsRes = await fetch(`${API_URL}/projects`);
         const projects = await projectsRes.json();
-        console.log('📥 Projects data:', projects);
+        console.log('📥 Projects data:', projects.length);
         updateProjects(projects);
 
         // Load settings
@@ -98,9 +98,11 @@ function updateProfileData(profile) {
         const key = el.getAttribute('data-profile');
         if (profile[key]) {
             if (el.tagName === 'IMG') {
-                el.src = profile[key].startsWith('http') ? profile[key] : `${BASE_URL}${profile[key]}`;
+                if (profile[key]) {
+                    el.src = profile[key].startsWith('http') ? profile[key] : `${BASE_URL}${profile[key]}`;
+                }
                 el.onerror = () => { el.src = '/images/default-profile.jpg'; };
-                console.log(`✅ Updated image ${key}:`, el.src);
+                console.log(`✅ Updated image ${key}`);
             } else if (el.tagName === 'A' && key.includes('email')) {
                 el.href = `mailto:${profile[key]}`;
                 el.textContent = profile[key];
@@ -360,25 +362,35 @@ function loadDefaultData() {
     updateSkills([
         { name: 'HTML5', level: 95, icon: 'fab fa-html5', color: '#E34F26' },
         { name: 'CSS3', level: 92, icon: 'fab fa-css3-alt', color: '#1572B6' },
-        { name: 'JavaScript', level: 88, icon: 'fab fa-js', color: '#F7DF1E' }
+        { name: 'JavaScript', level: 88, icon: 'fab fa-js', color: '#F7DF1E' },
+        { name: 'React', level: 85, icon: 'fab fa-react', color: '#61DAFB' },
+        { name: 'Node.js', level: 78, icon: 'fab fa-node', color: '#339933' }
     ]);
 
     updateProjects([
         {
             title: 'Smart Attendance System',
-            description: 'QR code based attendance system',
+            description: 'QR code based attendance system for college students',
             technologies: ['React', 'Node.js', 'MongoDB'],
-            github: '#',
-            demo: '#',
+            github: 'https://github.com',
+            demo: 'https://demo.com',
             featured: true
         },
         {
             title: 'E-Learning Platform',
-            description: 'Online learning platform',
+            description: 'Online learning platform with video courses',
             technologies: ['Next.js', 'Tailwind', 'Prisma'],
-            github: '#',
-            demo: '#',
+            github: 'https://github.com',
+            demo: 'https://demo.com',
             featured: true
+        },
+        {
+            title: 'Weather App',
+            description: 'Real-time weather application',
+            technologies: ['React', 'API', 'Chart.js'],
+            github: 'https://github.com',
+            demo: 'https://demo.com',
+            featured: false
         }
     ]);
 }
@@ -491,26 +503,32 @@ function initTypingAnimation() {
     type();
 }
 
-// ========== AUTO REFRESH (कम समयमा) ==========
+// ========== AUTO REFRESH ==========
 function startAutoRefresh() {
-    // पुरानो interval clear गर्ने
     if (window.refreshInterval) {
         clearInterval(window.refreshInterval);
     }
     
-    // नयाँ interval set गर्ने (60 seconds)
     window.refreshInterval = setInterval(() => {
         console.log('🔄 Auto-refreshing data...');
         loadAllData();
-    }, 60000); // 60 seconds
+    }, REFRESH_INTERVAL);
 }
 
-// ========== MANUAL REFRESH (Admin Update पछि Call गर्न) ==========
+// ========== MANUAL REFRESH ==========
 window.manualRefresh = function() {
     console.log('🔄 Manual refresh triggered...');
     loadAllData();
     showNotification('Data refreshed!', 'success');
 };
+
+// ========== STORAGE EVENT LISTENER ==========
+window.addEventListener('storage', (e) => {
+    if (e.key === 'adminUpdate') {
+        console.log('🔄 Admin update detected, refreshing...');
+        loadAllData();
+    }
+});
 
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
@@ -532,14 +550,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     console.log('✅ Portfolio ready!');
     
-    // URL parameters check गर्ने
+    // Check for URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('refreshed') === 'true') {
         showNotification('Data refreshed from admin!', 'success');
     }
 });
 
-// ========== EXPORT FOR DEBUG ==========
+// ========== DEBUG ==========
 window.debug = {
     reload: loadAllData,
     refresh: () => {
@@ -548,11 +566,3 @@ window.debug = {
     },
     api: API_URL
 };
-
-// ========== EVENT LISTENER FOR CUSTOM REFRESH ==========
-window.addEventListener('storage', (e) => {
-    if (e.key === 'adminUpdate') {
-        console.log('🔄 Admin update detected, refreshing...');
-        loadAllData();
-    }
-});

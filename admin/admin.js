@@ -1,37 +1,48 @@
+// admin.js - Complete Admin Panel with Fixed Session Management
 // ============================================
-// admin.js - Complete Admin Panel Logic
+// CONFIGURATION
 // ============================================
-
-// ========== CONFIGURATION ==========
 const API_URL = 'https://portfolio-xqwu.onrender.com/api';
 const BASE_URL = 'https://portfolio-xqwu.onrender.com';
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-console.log('✅ Admin JS Loaded');
-console.log('📍 API URL:', API_URL);
-console.log('📍 BASE URL:', BASE_URL);
+console.log('✅ Admin JS Loaded with API_URL:', API_URL);
+console.log('✅ Admin JS Loaded with BASE_URL:', BASE_URL);
 
-// ========== SECURITY CHECK ==========
+// ============================================
+// SECURITY CHECK FUNCTIONS
+// ============================================
+
+/**
+ * Check if user is authenticated
+ * @returns {boolean} - true if authenticated, false otherwise
+ */
 function checkAuth() {
     const token = localStorage.getItem('adminToken');
     const loginTime = localStorage.getItem('adminLoginTime');
     
+    // Debug logging
     console.log('🔐 Auth Check:', {
         hasToken: !!token,
         hasLoginTime: !!loginTime
     });
     
+    // Check if token exists
     if (!token || !loginTime) {
-        console.log('❌ No token found');
+        console.log('❌ No token or login time found');
         return false;
     }
     
+    // Parse login time
     const loginTimestamp = parseInt(loginTime);
+    
+    // Validate timestamp
     if (isNaN(loginTimestamp) || loginTimestamp <= 0) {
         console.log('❌ Invalid login time');
         return false;
     }
     
+    // Check if token is expired
     const now = Date.now();
     const timeDiff = now - loginTimestamp;
     
@@ -44,13 +55,21 @@ function checkAuth() {
     return true;
 }
 
+/**
+ * Redirect to login page with error message
+ * @param {string} error - Error type
+ */
 function redirectToLogin(error = 'unauthorized') {
     console.log(`🔄 Redirecting to login: ${error}`);
-    localStorage.clear();
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminLoginTime');
+    localStorage.removeItem('adminUser');
     window.location.replace(`index.html?error=${error}`);
 }
 
-// Initial security check
+// ============================================
+// INITIAL SECURITY CHECK
+// ============================================
 (function() {
     console.log('🚀 Admin Dashboard Loading...');
     
@@ -58,7 +77,7 @@ function redirectToLogin(error = 'unauthorized') {
     const loginTime = localStorage.getItem('adminLoginTime');
     
     if (!token || !loginTime) {
-        console.log('❌ No token found - redirecting');
+        console.log('❌ No token or login time found - redirecting');
         redirectToLogin('unauthorized');
         return;
     }
@@ -70,10 +89,20 @@ function redirectToLogin(error = 'unauthorized') {
     }
 })();
 
-// ========== API HELPER ==========
+// ============================================
+// API HELPER WITH AUTH
+// ============================================
+
+/**
+ * Fetch with authentication token
+ * @param {string} url - API endpoint
+ * @param {Object} options - Fetch options
+ * @returns {Promise} - Fetch response
+ */
 async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('adminToken');
     
+    // Double-check auth before API call
     if (!checkAuth()) {
         redirectToLogin('session_expired');
         throw new Error('Not authenticated');
@@ -86,6 +115,7 @@ async function fetchWithAuth(url, options = {}) {
         }
     };
     
+    // Don't set Content-Type for FormData
     if (options.body instanceof FormData) {
         delete defaultOptions.headers['Content-Type'];
     }
@@ -93,8 +123,9 @@ async function fetchWithAuth(url, options = {}) {
     try {
         const response = await fetch(url, { ...defaultOptions, ...options });
         
+        // Handle unauthorized response
         if (response.status === 401) {
-            console.log('❌ API returned 401');
+            console.log('❌ API returned 401 - session invalid');
             redirectToLogin('session_expired');
             throw new Error('Session expired');
         }
@@ -106,16 +137,44 @@ async function fetchWithAuth(url, options = {}) {
     }
 }
 
-// ========== UTILITY FUNCTIONS ==========
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+/**
+ * Show alert message
+ * @param {string} message - Message to display
+ * @param {string} type - Alert type
+ */
 function showAlert(message, type = 'success') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert ${type}`;
     alertDiv.innerHTML = `
         <i class="fas ${type === 'success' ? 'fa-check-circle' : 
-                         type === 'error' ? 'fa-exclamation-circle' : 
-                         type === 'warning' ? 'fa-exclamation-triangle' : 
-                         'fa-info-circle'}"></i>
+                          type === 'error' ? 'fa-exclamation-circle' : 
+                          type === 'warning' ? 'fa-exclamation-triangle' : 
+                          'fa-info-circle'}"></i>
         <span>${message}</span>
+    `;
+    
+    alertDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' :
+                      type === 'error' ? 'linear-gradient(135deg, #ef4444, #dc2626)' :
+                      type === 'warning' ? 'linear-gradient(135deg, #f59e0b, #d97706)' :
+                      'linear-gradient(135deg, #3b82f6, #2563eb)'};
+        color: white;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease;
+        font-family: 'Segoe UI', sans-serif;
     `;
     
     document.body.appendChild(alertDiv);
@@ -125,6 +184,11 @@ function showAlert(message, type = 'success') {
     }, 3000);
 }
 
+/**
+ * Format date
+ * @param {string} dateString - ISO date string
+ * @returns {string} - Formatted date
+ */
 function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -136,6 +200,18 @@ function formatDate(dateString) {
     });
 }
 
+/**
+ * Confirm action
+ * @param {string} message - Confirmation message
+ * @returns {boolean} - User confirmation
+ */
+function confirmAction(message = 'Are you sure?') {
+    return confirm(message);
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
@@ -143,12 +219,28 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+/**
+ * Set input value
+ */
 function setValue(id, value) {
     const el = document.getElementById(id);
     if (el) el.value = value || '';
 }
 
-// ========== SIDEBAR TOGGLE ==========
+/**
+ * Show image preview
+ */
+function showImagePreview(id, src) {
+    const preview = document.getElementById(id);
+    if (preview) {
+        preview.src = src;
+        preview.style.display = 'block';
+    }
+}
+
+// ============================================
+// SIDEBAR TOGGLE
+// ============================================
 const sidebar = document.getElementById('sidebar');
 const toggleBtn = document.getElementById('toggleSidebar');
 const mainContent = document.getElementById('mainContent');
@@ -160,19 +252,36 @@ if (toggleBtn) {
     });
 }
 
-// ========== SECTION NAVIGATION ==========
+// ============================================
+// SECTION NAVIGATION
+// ============================================
 const navLinks = document.querySelectorAll('.nav-link');
 const sections = document.querySelectorAll('.section');
+const pageTitle = document.getElementById('pageTitle');
+const pageDescription = document.getElementById('pageDescription');
 
-window.showSection = function(sectionId) {
+/**
+ * Show specific section
+ * @param {string} sectionId - Section ID to show
+ */
+function showSection(sectionId) {
+    // Hide all sections
     sections.forEach(s => s.style.display = 'none');
-    const selectedSection = document.getElementById(`${sectionId}-section`);
-    if (selectedSection) selectedSection.style.display = 'block';
     
+    // Show selected section
+    const selectedSection = document.getElementById(`${sectionId}-section`);
+    if (selectedSection) {
+        selectedSection.style.display = 'block';
+    }
+    
+    // Update active nav link
     navLinks.forEach(l => l.classList.remove('active'));
     const activeLink = document.querySelector(`[data-section="${sectionId}"]`);
-    if (activeLink) activeLink.classList.add('active');
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
     
+    // Update page title
     const titles = {
         'dashboard': { title: 'Dashboard', desc: 'Overview of your portfolio' },
         'profile': { title: 'Profile Settings', desc: 'Manage your personal information' },
@@ -182,12 +291,12 @@ window.showSection = function(sectionId) {
         'social': { title: 'Social Links', desc: 'Update your social media links' },
         'settings': { title: 'Site Settings', desc: 'Configure your website' },
         'uploads': { title: 'File Manager', desc: 'Manage uploaded files' },
-        'messages': { title: 'Messages', desc: 'View contact messages' },
-        'backup': { title: 'Backup & Restore', desc: 'Backup your data' }
+        'backup': { title: 'Backup & Restore', desc: 'Backup and restore your data' },
+        'messages': { title: 'Messages', desc: 'View contact form messages' }
     };
     
-    document.getElementById('pageTitle').textContent = titles[sectionId]?.title || 'Dashboard';
-    document.getElementById('pageDescription').textContent = titles[sectionId]?.desc || '';
+    if (pageTitle) pageTitle.textContent = titles[sectionId]?.title || 'Dashboard';
+    if (pageDescription) pageDescription.textContent = titles[sectionId]?.desc || '';
     
     // Load section data
     switch(sectionId) {
@@ -201,8 +310,9 @@ window.showSection = function(sectionId) {
         case 'messages': loadMessages(); break;
         case 'backup': loadBackupInfo(); break;
     }
-};
+}
 
+// Add click handlers to nav links
 navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -210,9 +320,16 @@ navLinks.forEach(link => {
     });
 });
 
-// ========== DASHBOARD ==========
+// ============================================
+// DASHBOARD
+// ============================================
+
+/**
+ * Load dashboard statistics
+ */
 async function loadDashboard() {
     const statsContainer = document.getElementById('dashboard-stats');
+    
     if (!statsContainer) return;
     
     statsContainer.innerHTML = '<div class="loading">Loading stats...</div>';
@@ -271,11 +388,19 @@ async function loadDashboard() {
     }
 }
 
-// ========== PROFILE MANAGEMENT ==========
+// ============================================
+// PROFILE MANAGEMENT
+// ============================================
+
+/**
+ * Load profile data
+ */
 async function loadProfile() {
     try {
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
+
+        console.log('📥 Profile data loaded:', profile);
 
         setValue('profileName', profile.name);
         setValue('profileTitle', profile.title);
@@ -307,14 +432,7 @@ async function loadProfile() {
     }
 }
 
-function showImagePreview(id, src) {
-    const preview = document.getElementById(id);
-    if (preview) {
-        preview.src = src;
-        preview.style.display = 'block';
-    }
-}
-
+// Profile form submit
 document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -338,6 +456,11 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
     const aboutImage = document.getElementById('aboutImage')?.files[0];
     if (aboutImage) formData.append('aboutImage', aboutImage);
 
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    submitBtn.disabled = true;
+
     try {
         const response = await fetchWithAuth(`${API_URL}/profile`, {
             method: 'PUT',
@@ -348,12 +471,21 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
         if (data.success) {
             showAlert('Profile updated successfully!');
             loadProfile();
+            
+            // Trigger refresh on frontend
+            localStorage.setItem('adminUpdate', Date.now());
+        } else {
+            showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
         }
     } catch (error) {
         showAlert('Error updating profile: ' + error.message, 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 });
 
+// Image preview handlers
 ['profileImage', 'aboutImage'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -371,7 +503,13 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
     });
 });
 
-// ========== PROJECTS MANAGEMENT ==========
+// ============================================
+// PROJECTS MANAGEMENT
+// ============================================
+
+/**
+ * Load projects list
+ */
 async function loadProjects() {
     const tbody = document.getElementById('projectsList');
     if (!tbody) return;
@@ -419,6 +557,7 @@ async function loadProjects() {
     }
 }
 
+// Project form submit
 document.getElementById('projectForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -461,6 +600,7 @@ document.getElementById('projectForm')?.addEventListener('submit', async (e) => 
     }
 });
 
+// Project image preview
 document.getElementById('projectImage')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
@@ -474,6 +614,9 @@ document.getElementById('projectImage')?.addEventListener('change', function(e) 
     }
 });
 
+/**
+ * Edit project
+ */
 window.editProject = async function(id) {
     try {
         const response = await fetch(`${API_URL}/projects`);
@@ -509,6 +652,7 @@ window.editProject = async function(id) {
     }
 };
 
+// Edit project form submit
 document.getElementById('editProjectForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -542,8 +686,11 @@ document.getElementById('editProjectForm')?.addEventListener('submit', async (e)
     }
 });
 
+/**
+ * Delete project
+ */
 window.deleteProject = async function(id) {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirmAction('Delete this project?')) return;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/projects/${id}`, {
@@ -561,7 +708,13 @@ window.deleteProject = async function(id) {
     }
 };
 
-// ========== SKILLS MANAGEMENT ==========
+// ============================================
+// SKILLS MANAGEMENT
+// ============================================
+
+/**
+ * Load skills list
+ */
 async function loadSkills() {
     const tbody = document.getElementById('skillsList');
     if (!tbody) return;
@@ -600,10 +753,14 @@ async function loadSkills() {
     }
 }
 
+/**
+ * Show add skill modal
+ */
 window.showAddSkillModal = function() {
     document.getElementById('skillModal').classList.add('active');
 };
 
+// Skill form submit
 document.getElementById('skillForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -635,6 +792,9 @@ document.getElementById('skillForm')?.addEventListener('submit', async (e) => {
     }
 });
 
+/**
+ * Edit skill
+ */
 window.editSkill = async function(id) {
     try {
         const response = await fetch(`${API_URL}/skills`);
@@ -658,6 +818,7 @@ window.editSkill = async function(id) {
     }
 };
 
+// Edit skill form submit
 document.getElementById('editSkillForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -688,8 +849,11 @@ document.getElementById('editSkillForm')?.addEventListener('submit', async (e) =
     }
 });
 
+/**
+ * Delete skill
+ */
 window.deleteSkill = async function(id) {
-    if (!confirm('Delete this skill?')) return;
+    if (!confirmAction('Delete this skill?')) return;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/skills/${id}`, {
@@ -708,7 +872,7 @@ window.deleteSkill = async function(id) {
 };
 
 // ============================================
-// SOCIAL LINKS - FIXED VERSION
+// SOCIAL LINKS - FIXED
 // ============================================
 
 /**
@@ -716,14 +880,12 @@ window.deleteSkill = async function(id) {
  */
 async function loadSocialLinks() {
     try {
-        console.log('📥 Loading social links...');
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
         const links = profile.socialLinks || {};
-        
-        console.log('📥 Received social links:', links);
 
-        // सबै platforms को लागि set गर्ने
+        console.log('📥 Social links loaded:', links);
+
         setValue('socialGithub', links.github || '');
         setValue('socialLinkedin', links.linkedin || '');
         setValue('socialTwitter', links.twitter || '');
@@ -732,8 +894,7 @@ async function loadSocialLinks() {
         setValue('socialYoutube', links.youtube || '');
         
     } catch (error) {
-        console.error('❌ Error loading social links:', error);
-        showAlert('Error loading social links', 'error');
+        console.error('Error loading social links:', error);
     }
 }
 
@@ -741,7 +902,6 @@ async function loadSocialLinks() {
 document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // सबै social links collect गर्ने
     const socialLinks = {
         github: document.getElementById('socialGithub')?.value || '',
         linkedin: document.getElementById('socialLinkedin')?.value || '',
@@ -753,12 +913,15 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
 
     console.log('📤 Sending social links:', socialLinks);
 
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    submitBtn.disabled = true;
+
     try {
         const response = await fetchWithAuth(`${API_URL}/profile`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ socialLinks })
         });
 
@@ -766,18 +929,29 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
         
         if (data.success) {
             showAlert('Social links updated successfully!');
-            console.log('✅ Social links update successful:', data);
-            loadSocialLinks(); // Reload to confirm
+            console.log('✅ Social links update successful');
+            
+            // Trigger refresh on frontend
+            localStorage.setItem('adminUpdate', Date.now());
         } else {
             showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
         }
     } catch (error) {
         console.error('❌ Social links update error:', error);
         showAlert('Error updating social links: ' + error.message, 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 });
 
-// ========== SETTINGS ==========
+// ============================================
+// SETTINGS
+// ============================================
+
+/**
+ * Load site settings
+ */
 async function loadSettings() {
     try {
         const response = await fetch(`${API_URL}/settings`);
@@ -802,24 +976,29 @@ async function loadSettings() {
     }
 }
 
+// Settings form submit
 document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const formData = new FormData();
-    formData.append('siteTitle', document.getElementById('siteTitle')?.value || '');
-    formData.append('siteDescription', document.getElementById('siteDescription')?.value || '');
-    formData.append('adminEmail', document.getElementById('adminEmail')?.value || '');
-    formData.append('maintenanceMode', document.getElementById('maintenanceMode')?.checked || false);
-    formData.append('copyrightText', document.getElementById('copyrightText')?.value || 'All rights reserved');
-    formData.append('siteLanguage', document.getElementById('siteLanguage')?.value || 'en');
+    const settings = {
+        siteTitle: document.getElementById('siteTitle')?.value || '',
+        siteDescription: document.getElementById('siteDescription')?.value || '',
+        adminEmail: document.getElementById('adminEmail')?.value || '',
+        maintenanceMode: document.getElementById('maintenanceMode')?.checked || false,
+        copyrightText: document.getElementById('copyrightText')?.value || 'All rights reserved',
+        siteLanguage: document.getElementById('siteLanguage')?.value || 'en'
+    };
 
-    const faviconFile = document.getElementById('favicon')?.files[0];
-    if (faviconFile) formData.append('favicon', faviconFile);
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    submitBtn.disabled = true;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/settings`, {
             method: 'PUT',
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings)
         });
 
         const data = await response.json();
@@ -830,10 +1009,19 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
         }
     } catch (error) {
         showAlert('Error updating settings', 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 });
 
-// ========== UPLOADS MANAGER ==========
+// ============================================
+// UPLOADS MANAGER
+// ============================================
+
+/**
+ * Load uploaded files
+ */
 async function loadUploads() {
     const container = document.getElementById('uploadsList');
     if (!container) return;
@@ -865,8 +1053,11 @@ async function loadUploads() {
     }
 }
 
+/**
+ * Delete uploaded file
+ */
 window.deleteUpload = async function(filename) {
-    if (!confirm('Delete this file?')) return;
+    if (!confirmAction('Delete this file?')) return;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/uploads/${filename}`, {
@@ -884,7 +1075,13 @@ window.deleteUpload = async function(filename) {
     }
 };
 
-// ========== BACKUP & RESTORE ==========
+// ============================================
+// BACKUP & RESTORE
+// ============================================
+
+/**
+ * Load backup information
+ */
 async function loadBackupInfo() {
     const lastBackupEl = document.getElementById('lastBackup');
     if (lastBackupEl) {
@@ -893,6 +1090,9 @@ async function loadBackupInfo() {
     }
 }
 
+/**
+ * Create backup
+ */
 window.backupData = async function() {
     try {
         const response = await fetchWithAuth(`${API_URL}/backup`);
@@ -916,6 +1116,9 @@ window.backupData = async function() {
     }
 };
 
+/**
+ * Restore from backup
+ */
 window.restoreData = async function() {
     const fileInput = document.getElementById('restoreFile');
     const file = fileInput?.files[0];
@@ -949,7 +1152,13 @@ window.restoreData = async function() {
     reader.readAsText(file);
 };
 
-// ========== MESSAGES ==========
+// ============================================
+// MESSAGES - COMPLETE FIX
+// ============================================
+
+/**
+ * Load contact messages
+ */
 async function loadMessages() {
     const tbody = document.getElementById('messagesList');
     if (!tbody) return;
@@ -957,45 +1166,65 @@ async function loadMessages() {
     tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading messages...</td></tr>';
 
     try {
+        console.log('📧 Fetching messages from:', `${API_URL}/messages`);
+        
         const response = await fetchWithAuth(`${API_URL}/messages`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const messages = await response.json();
+        console.log('📧 Messages received:', messages.length);
 
-        if (messages.length === 0) {
+        if (!messages || messages.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center">No messages yet</td></tr>';
             return;
         }
 
-        tbody.innerHTML = messages.map(m => `
-            <tr class="${m.read ? '' : 'unread'}">
+        tbody.innerHTML = messages.map(m => {
+            const messageId = m._id || m.id;
+            const messageDate = m.createdAt || m.date || new Date().toISOString();
+            const name = m.name || 'Anonymous';
+            const email = m.email || 'No email';
+            const subject = m.subject || 'No Subject';
+            const message = m.message || 'No message content';
+            const isRead = m.read || false;
+            
+            return `
+            <tr class="${isRead ? '' : 'unread'}" data-message-id="${messageId}">
                 <td>
-                    ${!m.read ? '<span class="badge badge-danger">New</span>' : '<span class="badge badge-success">Read</span>'}
+                    ${!isRead ? '<span class="badge badge-danger">New</span>' : '<span class="badge badge-success">Read</span>'}
                 </td>
-                <td>${escapeHtml(m.name || 'Anonymous')}</td>
-                <td><a href="mailto:${m.email}">${escapeHtml(m.email)}</a></td>
-                <td>${escapeHtml(m.subject || 'No Subject')}</td>
-                <td>${formatDate(m.createdAt || m.date)}</td>
+                <td>${escapeHtml(name)}</td>
+                <td><a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></td>
+                <td>${escapeHtml(subject)}</td>
+                <td>${formatDate(messageDate)}</td>
                 <td class="action-btns">
-                    <button class="action-btn view-btn" onclick="viewMessage('${m._id || m.id}')">
+                    <button class="action-btn view-btn" onclick="viewMessage('${messageId}')" title="View">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="action-btn delete-btn" onclick="deleteMessage('${m._id || m.id}')">
+                    <button class="action-btn delete-btn" onclick="deleteMessage('${messageId}')" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
         
         await updateUnreadCount();
         
     } catch (error) {
-        console.error('Error loading messages:', error);
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center error">Error loading messages</td></tr>';
+        console.error('❌ Error loading messages:', error);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center error">
+            Error loading messages: ${error.message}
+        </td></tr>`;
+        showAlert('Error loading messages', 'error');
     }
 }
 
-// ============================================
-// VIEW MESSAGE DETAILS - FIXED
-// ============================================
+/**
+ * View message details - FIXED
+ */
 window.viewMessage = async function(id) {
     try {
         console.log('👁️ Viewing message ID:', id);
@@ -1005,7 +1234,6 @@ window.viewMessage = async function(id) {
             return;
         }
         
-        // First, try to fetch the specific message
         const response = await fetchWithAuth(`${API_URL}/messages/${id}`);
         
         if (!response.ok) {
@@ -1018,21 +1246,35 @@ window.viewMessage = async function(id) {
         }
         
         const message = await response.json();
-        console.log('📧 Message details:', message);
+        await displayMessageDetails(message);
+        
+    } catch (error) {
+        console.error('❌ Error loading message:', error);
+        showAlert('Error loading message: ' + error.message, 'error');
+    }
+};
 
+/**
+ * Display message details
+ */
+async function displayMessageDetails(message) {
+    try {
+        console.log('📧 Message details:', message);
+        
+        const messageId = message._id || message.id;
+        
         // Mark as read if not already read
         if (!message.read) {
             try {
-                await fetchWithAuth(`${API_URL}/messages/${id}/read`, { method: 'PUT' });
+                await fetchWithAuth(`${API_URL}/messages/${messageId}/read`, { method: 'PUT' });
                 message.read = true;
                 updateUnreadCount();
-                loadMessages(); // Refresh the list
+                loadMessages();
             } catch (e) {
                 console.log('Error marking as read:', e);
             }
         }
 
-        // Display message details
         const detailDiv = document.getElementById('messageDetail');
         detailDiv.innerHTML = `
             <div class="message-detail">
@@ -1046,7 +1288,7 @@ window.viewMessage = async function(id) {
                 </div>
                 <div class="detail-row">
                     <strong>Date:</strong> 
-                    <span>${formatDate(message.createdAt || message.date)}</span>
+                    <span>${formatDate(message.createdAt || message.date || new Date())}</span>
                 </div>
                 <div class="detail-row">
                     <strong>Message:</strong>
@@ -1056,63 +1298,28 @@ window.viewMessage = async function(id) {
         `;
 
         document.getElementById('messageModal').classList.add('active');
-        window.currentMessageId = id;
+        window.currentMessageId = messageId;
         window.currentMessageEmail = message.email;
         
     } catch (error) {
-        console.error('❌ Error loading message:', error);
-        showAlert('Error loading message: ' + error.message, 'error');
+        console.error('❌ Error displaying message:', error);
+        showAlert('Error displaying message', 'error');
     }
-};
+}
 
-window.replyToMessage = function() {
-    if (window.currentMessageEmail) {
-        window.location.href = `mailto:${window.currentMessageEmail}`;
-    }
-};
-
-window.deleteCurrentMessage = async function() {
-    if (window.currentMessageId) {
-        await deleteMessage(window.currentMessageId);
-        closeMessageModal();
-    }
-};
-
-window.closeMessageModal = function() {
-    document.getElementById('messageModal').classList.remove('active');
-    window.currentMessageId = null;
-    window.currentMessageEmail = null;
-};
-
-window.refreshMessages = function() {
-    loadMessages();
-    showAlert('Messages refreshed', 'info');
-};
-
-window.deleteMessage = async function(id) {
-    if (!confirm('Delete this message?')) return;
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/messages/${id}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-            showAlert('Message deleted!');
-            loadMessages();
-            updateUnreadCount();
-        }
-    } catch (error) {
-        showAlert('Error deleting message', 'error');
-    }
-};
-
+/**
+ * Update unread count - FIXED
+ */
 async function updateUnreadCount() {
     try {
         const response = await fetchWithAuth(`${API_URL}/messages/unread/count`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('📧 Unread count:', data.count);
         
         const badge = document.getElementById('unread-badge');
         if (badge) {
@@ -1128,7 +1335,78 @@ async function updateUnreadCount() {
     }
 }
 
-// ========== MESSAGE FILTERS ==========
+/**
+ * Reply to message
+ */
+window.replyToMessage = function() {
+    if (window.currentMessageEmail) {
+        window.location.href = `mailto:${window.currentMessageEmail}`;
+    }
+};
+
+/**
+ * Delete current message
+ */
+window.deleteCurrentMessage = async function() {
+    if (window.currentMessageId) {
+        await deleteMessage(window.currentMessageId);
+        closeMessageModal();
+    }
+};
+
+/**
+ * Close message modal
+ */
+window.closeMessageModal = function() {
+    document.getElementById('messageModal').classList.remove('active');
+    window.currentMessageId = null;
+    window.currentMessageEmail = null;
+};
+
+/**
+ * Refresh messages
+ */
+window.refreshMessages = function() {
+    loadMessages();
+    showAlert('Messages refreshed', 'info');
+};
+
+/**
+ * Delete message - FIXED
+ */
+window.deleteMessage = async function(id) {
+    if (!confirmAction('Delete this message?')) return;
+
+    try {
+        console.log('🗑️ Deleting message:', id);
+        
+        const response = await fetchWithAuth(`${API_URL}/messages/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('Message deleted!');
+            loadMessages();
+            updateUnreadCount();
+            closeMessageModal();
+        } else {
+            throw new Error(data.message || 'Delete failed');
+        }
+    } catch (error) {
+        console.error('❌ Error deleting message:', error);
+        showAlert('Error deleting message: ' + error.message, 'error');
+    }
+};
+
+// ============================================
+// MESSAGE FILTERS
+// ============================================
 document.querySelectorAll('[data-message-filter]').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('[data-message-filter]').forEach(b => b.classList.remove('active'));
@@ -1149,7 +1427,13 @@ document.querySelectorAll('[data-message-filter]').forEach(btn => {
     });
 });
 
-// ========== MODAL FUNCTIONS ==========
+// ============================================
+// MODAL FUNCTIONS
+// ============================================
+
+/**
+ * Close modal
+ */
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.remove('active');
@@ -1157,7 +1441,10 @@ function closeModal(modalId) {
 
 window.closeModal = closeModal;
 
-// ========== LOGOUT ==========
+// ============================================
+// LOGOUT
+// ============================================
+
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
         localStorage.clear();
@@ -1167,7 +1454,11 @@ function logout() {
 
 document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
-// ========== SESSION MONITORING ==========
+// ============================================
+// SESSION MONITORING
+// ============================================
+
+// Check session every minute
 setInterval(() => {
     if (!checkAuth()) {
         console.log('Session expired - logging out');
@@ -1175,7 +1466,10 @@ setInterval(() => {
     }
 }, 60000);
 
-// ========== INITIALIZATION ==========
+// ============================================
+// INITIALIZATION
+// ============================================
+
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('📊 Admin Dashboard Initialized');
     

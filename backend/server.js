@@ -28,14 +28,14 @@ const PORT = process.env.PORT || 3001;
 
 // सबैभन्दा पहिले CORS middleware राख्नुहोस्
 app.use((req, res, next) => {
-    // सबै domains लाई allow गर्ने (development को लागि)
+    // सबै domains लाई allow गर्ने
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
     
-    // Handle preflight requests - यो धेरै important छ
+    // Handle preflight requests
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
@@ -159,9 +159,7 @@ app.get('/', (req, res) => {
             uploads: '/api/uploads',
             backup: '/api/backup',
             admin_login: '/api/admin/login'
-        },
-        frontend: 'https://dhiraj-dhakal.netlify.app',
-        admin: 'https://dhiraj-dhakal.netlify.app/admin'
+        }
     });
 });
 
@@ -174,8 +172,6 @@ app.get('/api/test', (req, res) => {
         message: 'Server is running!',
         timestamp: new Date().toISOString(),
         database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        cors: 'enabled',
-        frontend: 'https://dhiraj-dhakal.netlify.app',
         endpoints: [
             '/api/profile',
             '/api/projects',
@@ -328,8 +324,17 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ============================================
-// PROFILE API - FIXED SOCIAL LINKS
+// PROFILE API - FIXED
 // ============================================
+app.get('/api/profile', async (req, res) => {
+    try {
+        let profile = await Profile.findOne();
+        if (!profile) profile = await Profile.create({});
+        res.json(profile);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 app.put('/api/profile', authenticateToken, upload.fields([
     { name: 'profileImage', maxCount: 1 },
@@ -337,9 +342,7 @@ app.put('/api/profile', authenticateToken, upload.fields([
 ]), async (req, res) => {
     try {
         let profile = await Profile.findOne();
-        if (!profile) {
-            profile = new Profile();
-        }
+        if (!profile) profile = new Profile();
 
         console.log('📥 Profile update received');
         console.log('Body:', req.body);
@@ -362,35 +365,42 @@ app.put('/api/profile', authenticateToken, upload.fields([
         if (req.body.stats) {
             try {
                 profile.stats = JSON.parse(req.body.stats);
-            } catch (e) {
-                console.log('Stats parse error:', e);
-            }
+            } catch (e) {}
         }
 
-        // FIXED: Update social links
+        // Update social links
         if (req.body.socialLinks) {
             try {
                 const socialLinks = JSON.parse(req.body.socialLinks);
                 console.log('📥 Social links received:', socialLinks);
                 
-                // पुरानो socialLinks लाई नयाँ सँग merge गर्ने
                 profile.socialLinks = {
                     ...profile.socialLinks,
                     ...socialLinks
                 };
-            } catch (e) {
-                console.log('Social links parse error:', e);
-            }
+            } catch (e) {}
         }
 
         // Update profile image
         if (req.files && req.files.profileImage) {
+            if (profile.profileImage) {
+                const oldImagePath = path.join(uploadsDir, path.basename(profile.profileImage));
+                if (fs.existsSync(oldImagePath)) {
+                    fs.unlinkSync(oldImagePath);
+                }
+            }
             profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
             console.log('✅ Profile image updated:', profile.profileImage);
         }
 
         // Update about image
         if (req.files && req.files.aboutImage) {
+            if (profile.aboutImage) {
+                const oldImagePath = path.join(uploadsDir, path.basename(profile.aboutImage));
+                if (fs.existsSync(oldImagePath)) {
+                    fs.unlinkSync(oldImagePath);
+                }
+            }
             profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
             console.log('✅ About image updated:', profile.aboutImage);
         }
@@ -398,17 +408,14 @@ app.put('/api/profile', authenticateToken, upload.fields([
         await profile.save();
         console.log('✅ Profile saved successfully');
         
-        res.json({
-            success: true,
-            message: 'Profile updated successfully',
-            profile
-        });
+        res.json({ success: true, message: 'Profile updated successfully', profile });
         
     } catch (error) {
         console.error('❌ Profile update error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 // ============================================
 // PROJECTS API
 // ============================================
@@ -521,10 +528,10 @@ app.delete('/api/skills/:id', authenticateToken, async (req, res) => {
 });
 
 // ============================================
-// MESSAGES API - FIXED ROUTES
+// MESSAGES API - COMPLETE FIX
 // ============================================
 
-// POST - नयाँ message सिर्जना गर्ने (public)
+// POST - नयाँ message
 app.post('/api/messages', async (req, res) => {
     try {
         const newMessage = new Message({
@@ -534,19 +541,23 @@ app.post('/api/messages', async (req, res) => {
             message: req.body.message
         });
         await newMessage.save();
-        console.log('📧 New message saved:', newMessage._id);
-        res.status(201).json({ success: true, message: 'Message sent successfully!' });
+        console.log('✅ Message saved with ID:', newMessage._id);
+        res.status(201).json({ 
+            success: true, 
+            message: 'Message sent successfully!',
+            id: newMessage._id 
+        });
     } catch (error) {
         console.error('❌ Error saving message:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// GET - सबै messages (admin only)
+// GET - सबै messages
 app.get('/api/messages', authenticateToken, async (req, res) => {
     try {
         const messages = await Message.find().sort('-createdAt');
-        console.log(`📧 Found ${messages.length} messages`);
+        console.log(`✅ Found ${messages.length} messages`);
         res.json(messages);
     } catch (error) {
         console.error('❌ Error fetching messages:', error);
@@ -554,7 +565,7 @@ app.get('/api/messages', authenticateToken, async (req, res) => {
     }
 });
 
-// GET - unread count (specific route पहिले)
+// GET - unread count
 app.get('/api/messages/unread/count', authenticateToken, async (req, res) => {
     try {
         const count = await Message.countDocuments({ read: false });
@@ -566,22 +577,29 @@ app.get('/api/messages/unread/count', authenticateToken, async (req, res) => {
     }
 });
 
-// GET - single message by ID - FIXED VERSION
+// GET - single message by ID
 app.get('/api/messages/:id', authenticateToken, async (req, res) => {
     try {
-        console.log('🔍 Looking for message with ID:', req.params.id);
+        const messageId = req.params.id;
+        console.log('🔍 Looking for message ID:', messageId);
         
         // Validate ID format
-        if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+        if (!messageId.match(/^[0-9a-fA-F]{24}$/)) {
             console.log('❌ Invalid ID format');
-            return res.status(400).json({ success: false, message: 'Invalid message ID format' });
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid message ID format' 
+            });
         }
         
-        const message = await Message.findById(req.params.id);
+        const message = await Message.findById(messageId);
         
         if (!message) {
-            console.log('❌ Message not found with ID:', req.params.id);
-            return res.status(404).json({ success: false, message: 'Message not found' });
+            console.log('❌ Message not found:', messageId);
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Message not found' 
+            });
         }
         
         console.log('✅ Message found:', message._id);
@@ -595,16 +613,23 @@ app.get('/api/messages/:id', authenticateToken, async (req, res) => {
 // PUT - mark as read
 app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     try {
-        const message = await Message.findByIdAndUpdate(
-            req.params.id,
-            { read: true },
-            { new: true }
-        );
+        const messageId = req.params.id;
+        console.log('📝 Marking message as read:', messageId);
+        
+        const message = await Message.findById(messageId);
+        
         if (!message) {
-            return res.status(404).json({ success: false, message: 'Message not found' });
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Message not found' 
+            });
         }
-        console.log('✅ Message marked as read:', message._id);
-        res.json({ success: true, message: 'Message marked as read' });
+        
+        message.read = true;
+        await message.save();
+        
+        console.log('✅ Message marked as read');
+        res.json({ success: true });
     } catch (error) {
         console.error('❌ Error marking message as read:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -614,12 +639,20 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
 // DELETE - message
 app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
     try {
-        const message = await Message.findByIdAndDelete(req.params.id);
+        const messageId = req.params.id;
+        console.log('🗑️ Deleting message:', messageId);
+        
+        const message = await Message.findByIdAndDelete(messageId);
+        
         if (!message) {
-            return res.status(404).json({ success: false, message: 'Message not found' });
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Message not found' 
+            });
         }
-        console.log('✅ Message deleted:', message._id);
-        res.json({ success: true, message: 'Message deleted successfully' });
+        
+        console.log('✅ Message deleted');
+        res.json({ success: true });
     } catch (error) {
         console.error('❌ Error deleting message:', error);
         res.status(500).json({ success: false, error: error.message });
