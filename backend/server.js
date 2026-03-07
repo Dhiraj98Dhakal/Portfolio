@@ -318,19 +318,8 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ============================================
-// PROFILE API
+// PROFILE API - FIXED VERSION
 // ============================================
-app.get('/api/profile', async (req, res) => {
-    try {
-        let profile = await Profile.findOne();
-        if (!profile) {
-            profile = await Profile.create({});
-        }
-        res.json(profile);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
 
 app.put('/api/profile', authenticateToken, upload.fields([
     { name: 'profileImage', maxCount: 1 },
@@ -340,53 +329,45 @@ app.put('/api/profile', authenticateToken, upload.fields([
         let profile = await Profile.findOne();
         if (!profile) profile = new Profile();
 
-        console.log('📥 Profile update received');
+        console.log('📥 Profile update received:', req.body);
 
         // Update text fields
-        const textFields = [
-            'name', 'title', 'bio', 'aboutText', 'email', 'phone',
-            'location', 'country', 'experience', 'initials', 'education',
-            'cvLink', 'website', 'shortBio', 'contactTitle', 'contactText'
-        ];
-
-        textFields.forEach(field => {
-            if (req.body[field] !== undefined) {
-                profile[field] = req.body[field];
-            }
+        const fields = ['name', 'title', 'bio', 'aboutText', 'email', 'phone', 
+                       'location', 'country', 'experience', 'initials', 'education',
+                       'cvLink', 'website', 'shortBio', 'contactTitle', 'contactText'];
+        
+        fields.forEach(f => {
+            if (req.body[f]) profile[f] = req.body[f];
         });
-
-        // Update stats
-        if (req.body.stats) {
-            try {
-                profile.stats = JSON.parse(req.body.stats);
-            } catch (e) {}
-        }
 
         // Update social links
         if (req.body.socialLinks) {
             try {
                 const socialLinks = JSON.parse(req.body.socialLinks);
-                profile.socialLinks = {
-                    ...profile.socialLinks,
-                    ...socialLinks
-                };
-            } catch (e) {}
+                if (!profile.socialLinks) profile.socialLinks = {};
+                Object.assign(profile.socialLinks, socialLinks);
+                console.log('✅ Social links updated:', socialLinks);
+            } catch (e) {
+                console.log('Social links parse error:', e);
+            }
         }
 
         // Update images
-        if (req.files && req.files.profileImage) {
+        if (req.files?.profileImage) {
             profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
             console.log('✅ Profile image updated');
         }
-
-        if (req.files && req.files.aboutImage) {
+        
+        if (req.files?.aboutImage) {
             profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
             console.log('✅ About image updated');
         }
 
         await profile.save();
-        console.log('✅ Profile saved');
+        console.log('✅ Profile saved successfully');
+        
         res.json({ success: true, message: 'Profile updated successfully', profile });
+        
     } catch (error) {
         console.error('❌ Profile update error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -569,12 +550,23 @@ app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
 });
 
 // ============================================
-// SETTINGS API
+// SETTINGS API - FIXED VERSION
 // ============================================
+
 app.get('/api/settings', async (req, res) => {
     try {
         let settings = await Settings.findOne();
-        if (!settings) settings = await Settings.create({});
+        if (!settings) {
+            settings = await Settings.create({
+                siteTitle: 'Dhiraj Dhakal - Portfolio',
+                siteDescription: 'BICTE Student | Developer | Tech Enthusiast',
+                adminEmail: 'admin@example.com',
+                maintenanceMode: false,
+                copyrightText: 'All rights reserved',
+                siteLanguage: 'en',
+                favicon: null
+            });
+        }
         res.json(settings);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -586,24 +578,31 @@ app.put('/api/settings', authenticateToken, upload.single('favicon'), async (req
         let settings = await Settings.findOne();
         if (!settings) settings = new Settings();
         
-        settings.siteTitle = req.body.siteTitle || settings.siteTitle;
-        settings.siteDescription = req.body.siteDescription || settings.siteDescription;
-        settings.adminEmail = req.body.adminEmail || settings.adminEmail;
-        settings.maintenanceMode = req.body.maintenanceMode === 'true';
-        settings.copyrightText = req.body.copyrightText || settings.copyrightText;
-        settings.siteLanguage = req.body.siteLanguage || settings.siteLanguage;
+        // Update text fields
+        if (req.body.siteTitle) settings.siteTitle = req.body.siteTitle;
+        if (req.body.siteDescription) settings.siteDescription = req.body.siteDescription;
+        if (req.body.adminEmail) settings.adminEmail = req.body.adminEmail;
+        if (req.body.copyrightText) settings.copyrightText = req.body.copyrightText;
+        if (req.body.siteLanguage) settings.siteLanguage = req.body.siteLanguage;
         
+        // Update boolean
+        settings.maintenanceMode = req.body.maintenanceMode === 'true';
+        
+        // Update favicon
         if (req.file) {
             settings.favicon = `/uploads/${req.file.filename}`;
+            console.log('✅ Favicon updated:', settings.favicon);
         }
         
         await settings.save();
+        console.log('✅ Settings saved');
+        
         res.json({ success: true, settings });
     } catch (error) {
+        console.error('❌ Settings update error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
-
 // ============================================
 // TESTIMONIALS API
 // ============================================

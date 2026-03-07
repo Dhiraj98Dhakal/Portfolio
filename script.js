@@ -129,6 +129,54 @@ function updateSkills(skills) {
     `).join('');
 }
 
+// ========== FAVICON SETUP - FIXED ==========
+function setFavicon(iconUrl) {
+    // Remove existing favicon
+    document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]').forEach(el => el.remove());
+    
+    if (iconUrl && iconUrl !== 'null') {
+        // Main favicon
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/png';
+        link.href = iconUrl;
+        document.head.appendChild(link);
+        
+        // Apple touch icon
+        const appleLink = document.createElement('link');
+        appleLink.rel = 'apple-touch-icon';
+        appleLink.href = iconUrl;
+        document.head.appendChild(appleLink);
+        
+        console.log('✅ Favicon set to:', iconUrl);
+    } else {
+        // Default favicon
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/png';
+        link.href = 'icons/favicon.png';
+        document.head.appendChild(link);
+    }
+}
+
+async function loadFavicon() {
+    try {
+        const response = await fetch(`${API_URL}/settings`);
+        const settings = await response.json();
+        
+        if (settings && settings.favicon) {
+            setFavicon(`${BASE_URL}${settings.favicon}`);
+        } else {
+            setFavicon('icons/favicon.png');
+        }
+    } catch (error) {
+        console.log('Using default favicon');
+        setFavicon('icons/favicon.png');
+    }
+}
+
+
+
 // ========== UPDATE PROJECTS ==========
 function updateProjects(projects) {
     const container = document.getElementById('projects-grid');

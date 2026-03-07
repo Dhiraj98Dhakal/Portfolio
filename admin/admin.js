@@ -204,58 +204,29 @@ async function loadDashboard() {
     }
 }
 
-// ========== PROFILE MANAGEMENT ==========
-async function loadProfile() {
-    try {
-        const response = await fetch(`${API_URL}/profile`);
-        const profile = await response.json();
-
-        setValue('profileName', profile.name);
-        setValue('profileTitle', profile.title);
-        setValue('profileBio', profile.bio);
-        setValue('profileEmail', profile.email);
-        setValue('profilePhone', profile.phone);
-        setValue('profileLocation', profile.location);
-        setValue('profileCountry', profile.country || 'Nepal');
-        setValue('profileExperience', profile.experience || '2+');
-        setValue('profileInitials', profile.initials || 'D');
-
-        if (profile.profileImage) {
-            const preview = document.getElementById('profileImagePreview');
-            preview.src = profile.profileImage.startsWith('http') ? profile.profileImage : `${BASE_URL}${profile.profileImage}`;
-            preview.style.display = 'block';
-        }
-        
-    } catch (error) {
-        console.error('Error loading profile:', error);
-        showAlert('Error loading profile', 'error');
-    }
-}
-
+// ========== PROFILE FORM SUBMIT - FIXED ==========
 document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const formData = new FormData();
     
-    const fields = [
-        'name', 'title', 'bio', 'email', 'phone', 
-        'location', 'country', 'experience', 'initials'
-    ];
-    
+    // Add all fields
+    const fields = ['name', 'title', 'bio', 'email', 'phone', 'location', 'country', 'experience', 'initials'];
     fields.forEach(field => {
         const value = document.getElementById(`profile${field.charAt(0).toUpperCase() + field.slice(1)}`)?.value;
         if (value) formData.append(field, value);
     });
 
-    const profileImage = document.getElementById('profileImage')?.files[0];
-    if (profileImage) formData.append('profileImage', profileImage);
+    // Add images
+    const profileImg = document.getElementById('profileImage')?.files[0];
+    if (profileImg) formData.append('profileImage', profileImg);
     
-    const aboutImage = document.getElementById('aboutImage')?.files[0];
-    if (aboutImage) formData.append('aboutImage', aboutImage);
+    const aboutImg = document.getElementById('aboutImage')?.files[0];
+    if (aboutImg) formData.append('aboutImage', aboutImg);
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
     submitBtn.disabled = true;
 
     try {
@@ -265,38 +236,22 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('Profile updated successfully!');
-            loadProfile();
+            alert('Profile updated successfully!');
+            // Trigger refresh on frontend
+            localStorage.setItem('adminUpdate', Date.now());
         } else {
-            showAlert('Error updating profile', 'error');
+            alert('Error: ' + (data.message || 'Unknown error'));
         }
     } catch (error) {
-        showAlert('Error updating profile', 'error');
+        alert('Error updating profile');
+        console.error(error);
     } finally {
-        submitBtn.innerHTML = originalText;
+        submitBtn.textContent = originalText;
         submitBtn.disabled = false;
     }
 });
-
-// Image preview handlers
-['profileImage', 'aboutImage'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const preview = document.getElementById(id + 'Preview');
-                if (preview) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-});
-
 // ========== PROJECTS MANAGEMENT ==========
 async function loadProjects() {
     const tbody = document.getElementById('projectsList');
@@ -625,53 +580,48 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
     }
 });
 
-// ========== SETTINGS ==========
-async function loadSettings() {
-    try {
-        const response = await fetch(`${API_URL}/settings`);
-        const settings = await response.json();
-
-        setValue('siteTitle', settings.siteTitle);
-        setValue('siteDescription', settings.siteDescription);
-        setValue('adminEmail', settings.adminEmail);
-        
-        const maintenanceCheck = document.getElementById('maintenanceMode');
-        if (maintenanceCheck) maintenanceCheck.checked = settings.maintenanceMode || false;
-        
-    } catch (error) {
-        console.error('Error loading settings:', error);
-    }
-}
-
+/// ========== SETTINGS FORM SUBMIT - FIXED ==========
 document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const settings = {
-        siteTitle: document.getElementById('siteTitle')?.value || '',
-        siteDescription: document.getElementById('siteDescription')?.value || '',
-        adminEmail: document.getElementById('adminEmail')?.value || '',
-        maintenanceMode: document.getElementById('maintenanceMode')?.checked || false
-    };
+    const formData = new FormData();
+    formData.append('siteTitle', document.getElementById('siteTitle')?.value || '');
+    formData.append('siteDescription', document.getElementById('siteDescription')?.value || '');
+    formData.append('adminEmail', document.getElementById('adminEmail')?.value || '');
+    formData.append('maintenanceMode', document.getElementById('maintenanceMode')?.checked || false);
+    formData.append('copyrightText', document.getElementById('copyrightText')?.value || 'All rights reserved');
+    formData.append('siteLanguage', document.getElementById('siteLanguage')?.value || 'en');
+
+    const faviconFile = document.getElementById('favicon')?.files[0];
+    if (faviconFile) formData.append('favicon', faviconFile);
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/settings`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(settings)
+            body: formData
         });
 
         const data = await response.json();
         
         if (data.success) {
-            showAlert('Settings updated successfully!');
+            alert('Settings updated successfully!');
+            loadSettings();
         } else {
-            showAlert('Error updating settings', 'error');
+            alert('Error updating settings');
         }
     } catch (error) {
-        showAlert('Error updating settings', 'error');
+        alert('Error updating settings');
+        console.error(error);
+    } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
     }
 });
-
 // ========== UPLOADS ==========
 async function loadUploads() {
     const container = document.getElementById('uploadsList');

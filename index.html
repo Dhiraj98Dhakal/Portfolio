@@ -17,22 +17,13 @@
     
     <!-- CSS -->
     <link rel="stylesheet" href="style.css">
-    
-    <style>
-        /* Fallback for images */
-        .fallback-image {
-            background: linear-gradient(135deg, #00f3ff, #ff00c8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            font-weight: bold;
-        }
-    </style>
 </head>
 <body>
-    <!-- ===== NAVBAR ===== -->
+    <!-- Custom Cursor -->
+    <div class="cursor"></div>
+    <div class="cursor-follower"></div>
+
+    <!-- Navbar -->
     <nav class="navbar">
         <div class="container">
             <a href="#home" class="logo">
@@ -56,7 +47,7 @@
         </div>
     </nav>
 
-    <!-- ===== HERO SECTION ===== -->
+    <!-- Hero Section -->
     <section id="home" class="hero">
         <div class="container">
             <div class="hero-content">
@@ -107,7 +98,7 @@
         </div>
     </section>
 
-    <!-- ===== ABOUT SECTION ===== -->
+    <!-- About Section -->
     <section id="about" class="about">
         <div class="container">
             <div class="section-header">
@@ -152,7 +143,7 @@
         </div>
     </section>
 
-    <!-- ===== SKILLS SECTION ===== -->
+    <!-- Skills Section -->
     <section id="skills" class="skills">
         <div class="container">
             <div class="section-header">
@@ -163,7 +154,7 @@
         </div>
     </section>
 
-    <!-- ===== PROJECTS SECTION ===== -->
+    <!-- Projects Section -->
     <section id="projects" class="projects">
         <div class="container">
             <div class="section-header">
@@ -180,7 +171,7 @@
         </div>
     </section>
 
-    <!-- ===== TESTIMONIALS SECTION ===== -->
+    <!-- Testimonials Section -->
     <section id="testimonials" class="testimonials">
         <div class="container">
             <div class="section-header">
@@ -191,7 +182,7 @@
         </div>
     </section>
 
-    <!-- ===== CONTACT SECTION ===== -->
+    <!-- Contact Section -->
     <section id="contact" class="contact">
         <div class="container">
             <div class="section-header">
@@ -242,16 +233,16 @@
                 <div class="contact-right">
                     <form class="contact-form" id="contact-form">
                         <div class="form-group">
-                            <input type="text" id="name" name="name" autocomplete="name" placeholder="Your Name" required>
+                            <input type="text" id="name" placeholder="Your Name" required>
                         </div>
                         <div class="form-group">
-                            <input type="email" id="email" name="email" autocomplete="email" placeholder="Your Email" required>
+                            <input type="email" id="email" placeholder="Your Email" required>
                         </div>
                         <div class="form-group">
-                            <input type="text" id="subject" name="subject" autocomplete="off" placeholder="Subject">
+                            <input type="text" id="subject" placeholder="Subject">
                         </div>
                         <div class="form-group">
-                            <textarea id="message" name="message" autocomplete="off" rows="5" placeholder="Your Message" required></textarea>
+                            <textarea id="message" rows="5" placeholder="Your Message" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Send Message</button>
                     </form>
@@ -260,7 +251,7 @@
         </div>
     </section>
 
-    <!-- ===== FOOTER ===== -->
+    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
@@ -296,10 +287,10 @@
         </div>
     </footer>
 
-    <!-- ===== BACK TO TOP ===== -->
+    <!-- Back to Top -->
     <a href="#" class="back-to-top"><i class="fas fa-arrow-up"></i></a>
 
-    <!-- ===== SCRIPT ===== -->
+    <!-- Script -->
     <script src="script.js"></script>
 </body>
 </html>
