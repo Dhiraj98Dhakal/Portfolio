@@ -36,7 +36,7 @@ async function loadAllData() {
     }
 }
 
-// ========== UPDATE PROFILE - FIXED VERSION ==========
+// ========== UPDATE PROFILE - COMPLETE FIXED VERSION ==========
 function updateProfile(profile) {
     // Update text elements
     document.querySelectorAll('[data-profile]').forEach(el => {
@@ -59,75 +59,36 @@ function updateProfile(profile) {
         }
     });
 
-    // ========== SOCIAL LINKS UPDATE - FIXED VERSION WITH POINTER EVENTS ==========
+    // ========== SOCIAL LINKS UPDATE - FIXED VERSION ==========
     if (profile.socialLinks) {
         console.log('🔗 Updating social links with:', profile.socialLinks);
         
-        // Hero section social links
-        const heroSocial = document.getElementById('hero-social') || document.querySelector('.hero-social');
-        if (heroSocial) {
-            const socialIcons = heroSocial.querySelectorAll('.social-icon, [data-social]');
-            socialIcons.forEach(icon => {
-                const platform = icon.getAttribute('data-social');
-                const url = profile.socialLinks[platform];
+        // Update all social links in the page
+        document.querySelectorAll('[data-social]').forEach(el => {
+            const platform = el.getAttribute('data-social');
+            const url = profile.socialLinks[platform];
+            
+            if (url && url.trim() !== '') {
+                // Set href
+                el.href = url;
                 
-                if (url && url.trim() !== '') {
-                    icon.href = url;
-                    icon.style.display = 'flex';
-                    icon.style.pointerEvents = 'auto';
-                    icon.style.cursor = 'pointer';
-                    icon.style.opacity = '1';
-                    icon.setAttribute('target', '_blank');
-                    icon.setAttribute('rel', 'noopener noreferrer');
-                    console.log(`✅ Set ${platform} to:`, url);
-                } else {
-                    icon.style.display = 'none';
-                    console.log(`❌ Hidden ${platform}`);
-                }
-            });
-        }
-
-        // Contact section social links
-        const contactSocial = document.querySelector('.contact-social .social-links');
-        if (contactSocial) {
-            const socialLinks = contactSocial.querySelectorAll('.social-link, [data-social]');
-            socialLinks.forEach(link => {
-                const platform = link.getAttribute('data-social');
-                const url = profile.socialLinks[platform];
+                // Ensure proper attributes for links
+                el.setAttribute('target', '_blank');
+                el.setAttribute('rel', 'noopener noreferrer');
                 
-                if (url && url.trim() !== '') {
-                    link.href = url;
-                    link.style.display = 'flex';
-                    link.style.pointerEvents = 'auto';
-                    link.style.cursor = 'pointer';
-                    link.setAttribute('target', '_blank');
-                    link.setAttribute('rel', 'noopener noreferrer');
-                } else {
-                    link.style.display = 'none';
-                }
-            });
-        }
-
-        // Footer social links
-        const footerSocial = document.querySelector('.footer-social .social-icons');
-        if (footerSocial) {
-            const footerIcons = footerSocial.querySelectorAll('a, [data-social]');
-            footerIcons.forEach(link => {
-                const platform = link.getAttribute('data-social');
-                const url = profile.socialLinks[platform];
+                // Make sure it's visible and clickable
+                el.style.display = 'flex';
+                el.style.pointerEvents = 'auto';
+                el.style.cursor = 'pointer';
+                el.style.opacity = '1';
                 
-                if (url && url.trim() !== '') {
-                    link.href = url;
-                    link.style.display = 'flex';
-                    link.style.pointerEvents = 'auto';
-                    link.style.cursor = 'pointer';
-                    link.setAttribute('target', '_blank');
-                    link.setAttribute('rel', 'noopener noreferrer');
-                } else {
-                    link.style.display = 'none';
-                }
-            });
-        }
+                console.log(`✅ Set ${platform} to:`, url);
+            } else {
+                // Hide if no URL
+                el.style.display = 'none';
+                console.log(`❌ Hidden ${platform}`);
+            }
+        });
     }
 
     // Update stats
@@ -172,6 +133,7 @@ function updateSkills(skills) {
 
 // ========== FAVICON SETUP ==========
 function setFavicon(iconUrl) {
+    // Remove existing favicons
     document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]').forEach(el => el.remove());
     
     if (iconUrl && iconUrl !== 'null') {
@@ -193,6 +155,7 @@ function setFavicon(iconUrl) {
         link.type = 'image/png';
         link.href = 'icons/favicon.png';
         document.head.appendChild(link);
+        console.log('✅ Using default favicon');
     }
 }
 
@@ -327,29 +290,31 @@ document.getElementById('contact-form')?.addEventListener('submit', async (e) =>
 
 // ========== DEFAULT DATA ==========
 function loadDefaultData() {
+    // Default skills
     updateSkills([
-        { name: 'HTML5', level: 95, icon: 'fab fa-html5', color: '#E34F26' },
-        { name: 'CSS3', level: 92, icon: 'fab fa-css3-alt', color: '#1572B6' },
-        { name: 'JavaScript', level: 88, icon: 'fab fa-js', color: '#F7DF1E' },
-        { name: 'React', level: 85, icon: 'fab fa-react', color: '#61DAFB' },
-        { name: 'Node.js', level: 78, icon: 'fab fa-node', color: '#339933' }
+        { name: 'HTML5', level: 95, icon: 'fab fa-html5', color: '#E34F26', category: 'frontend' },
+        { name: 'CSS3', level: 92, icon: 'fab fa-css3-alt', color: '#1572B6', category: 'frontend' },
+        { name: 'JavaScript', level: 88, icon: 'fab fa-js', color: '#F7DF1E', category: 'frontend' },
+        { name: 'React', level: 85, icon: 'fab fa-react', color: '#61DAFB', category: 'frontend' },
+        { name: 'Node.js', level: 78, icon: 'fab fa-node', color: '#339933', category: 'backend' }
     ]);
 
+    // Default projects
     updateProjects([
         {
             title: 'Smart Attendance System',
-            description: 'QR code based attendance system',
+            description: 'QR code based attendance system for college students with real-time tracking.',
             technologies: ['React', 'Node.js', 'MongoDB'],
-            github: '#',
-            demo: '#',
+            github: 'https://github.com',
+            demo: 'https://demo.com',
             featured: true
         },
         {
             title: 'E-Learning Platform',
-            description: 'Online learning platform',
+            description: 'Modern online learning platform with video courses, quizzes, and progress tracking.',
             technologies: ['Next.js', 'Tailwind', 'Prisma'],
-            github: '#',
-            demo: '#',
+            github: 'https://github.com',
+            demo: 'https://demo.com',
             featured: true
         }
     ]);
@@ -358,9 +323,9 @@ function loadDefaultData() {
 // ========== TYPING ANIMATION ==========
 function initTypingAnimation() {
     const typedText = document.querySelector('.typed-text');
-    const words = ['Developer', 'BICTE Student', 'Tech Enthusiast', 'Problem Solver'];
     if (!typedText) return;
     
+    const words = ['Developer', 'BICTE Student', 'Tech Enthusiast', 'Problem Solver'];
     let wordIndex = 0;
     let charIndex = 0;
     let isDeleting = false;
@@ -454,7 +419,7 @@ function updateCurrentYear() {
     });
 }
 
-// ========== STORAGE EVENT LISTENER - ADMIN UPDATE DETECT ==========
+// ========== STORAGE EVENT LISTENER ==========
 window.addEventListener('storage', (e) => {
     if (e.key === 'adminUpdate') {
         console.log('🔄 Admin update detected, refreshing...');
@@ -475,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTypingAnimation();
     updateCurrentYear();
     
+    // Auto refresh every 30 seconds
     setInterval(loadAllData, REFRESH_INTERVAL);
     
     console.log('✅ Portfolio ready!');

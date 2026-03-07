@@ -102,6 +102,28 @@ function setValue(id, value) {
     if (el) el.value = value || '';
 }
 
+// ========== SESSION TIMER ==========
+function updateSessionTimer() {
+    const loginTime = localStorage.getItem('adminLoginTime');
+    if (!loginTime) return;
+    
+    const elapsed = Date.now() - parseInt(loginTime);
+    const remaining = SESSION_TIMEOUT - elapsed;
+    
+    if (remaining <= 0) {
+        localStorage.clear();
+        window.location.href = 'index.html?error=expired';
+        return;
+    }
+    
+    const hours = Math.floor(remaining / (60 * 60 * 1000));
+    const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+    document.getElementById('timerDisplay').textContent = `${hours}h ${minutes}m remaining`;
+}
+
+setInterval(updateSessionTimer, 60000);
+updateSessionTimer();
+
 // ========== SECTION NAVIGATION ==========
 const navLinks = document.querySelectorAll('.nav-link');
 const sections = document.querySelectorAll('.section');
@@ -159,56 +181,6 @@ navLinks.forEach(link => {
     });
 });
 
-// ========== LOAD SETTINGS FUNCTION - ADD THIS ==========
-async function loadSettings() {
-    try {
-        const response = await fetch(`${API_URL}/settings`);
-        const settings = await response.json();
-
-        document.getElementById('siteTitle').value = settings.siteTitle || '';
-        document.getElementById('siteDescription').value = settings.siteDescription || '';
-        document.getElementById('adminEmail').value = settings.adminEmail || '';
-        
-        const maintenanceCheck = document.getElementById('maintenanceMode');
-        if (maintenanceCheck) maintenanceCheck.checked = settings.maintenanceMode || false;
-        
-        document.getElementById('copyrightText').value = settings.copyrightText || 'All rights reserved';
-        document.getElementById('siteLanguage').value = settings.siteLanguage || 'en';
-        
-    } catch (error) {
-        console.error('Error loading settings:', error);
-        alert('Error loading settings');
-    }
-}
-
-// ========== PROFILE LOAD FUNCTION ==========
-async function loadProfile() {
-    try {
-        const response = await fetch(`${API_URL}/profile`);
-        const profile = await response.json();
-
-        document.getElementById('profileName').value = profile.name || '';
-        document.getElementById('profileTitle').value = profile.title || '';
-        document.getElementById('profileBio').value = profile.bio || '';
-        document.getElementById('profileEmail').value = profile.email || '';
-        document.getElementById('profilePhone').value = profile.phone || '';
-        document.getElementById('profileLocation').value = profile.location || '';
-        document.getElementById('profileCountry').value = profile.country || 'Nepal';
-        document.getElementById('profileExperience').value = profile.experience || '2+';
-        document.getElementById('profileInitials').value = profile.initials || 'D';
-
-        if (profile.profileImage) {
-            const preview = document.getElementById('profileImagePreview');
-            preview.src = profile.profileImage.startsWith('http') ? profile.profileImage : `${BASE_URL}${profile.profileImage}`;
-            preview.style.display = 'block';
-        }
-        
-    } catch (error) {
-        console.error('Error loading profile:', error);
-        alert('Error loading profile');
-    }
-}
-
 // ========== DASHBOARD ==========
 async function loadDashboard() {
     const statsContainer = document.getElementById('dashboard-stats');
@@ -254,6 +226,61 @@ async function loadDashboard() {
     }
 }
 
+// ========== PROFILE ==========
+async function loadProfile() {
+    try {
+        const response = await fetch(`${API_URL}/profile`);
+        const profile = await response.json();
+
+        document.getElementById('profileName').value = profile.name || '';
+        document.getElementById('profileTitle').value = profile.title || '';
+        document.getElementById('profileBio').value = profile.bio || '';
+        document.getElementById('profileEmail').value = profile.email || '';
+        document.getElementById('profilePhone').value = profile.phone || '';
+        document.getElementById('profileLocation').value = profile.location || '';
+        document.getElementById('profileCountry').value = profile.country || 'Nepal';
+        document.getElementById('profileExperience').value = profile.experience || '2+';
+        document.getElementById('profileInitials').value = profile.initials || 'D';
+
+        if (profile.profileImage) {
+            const preview = document.getElementById('profileImagePreview');
+            preview.src = profile.profileImage.startsWith('http') ? profile.profileImage : `${BASE_URL}${profile.profileImage}`;
+            preview.style.display = 'block';
+        }
+        
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        showAlert('Error loading profile', 'error');
+    }
+}
+
+// Image previews
+document.getElementById('profileImage')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const preview = document.getElementById('profileImagePreview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+document.getElementById('aboutImage')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const preview = document.getElementById('aboutImagePreview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
 // ========== PROFILE FORM SUBMIT ==========
 document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -286,13 +313,13 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
         const data = await response.json();
         
         if (data.success) {
-            alert('Profile updated successfully!');
+            showAlert('Profile updated successfully!');
             localStorage.setItem('adminUpdate', Date.now());
         } else {
-            alert('Error: ' + (data.message || 'Unknown error'));
+            showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
         }
     } catch (error) {
-        alert('Error updating profile');
+        showAlert('Error updating profile', 'error');
         console.error(error);
     } finally {
         submitBtn.textContent = originalText;
@@ -578,7 +605,7 @@ window.deleteSkill = async function(id) {
     }
 };
 
-// ========== SOCIAL LINKS - FIXED VERSION ==========
+// ========== SOCIAL LINKS - COMPLETE FIX ==========
 async function loadSocial() {
     try {
         const response = await fetch(`${API_URL}/profile`);
@@ -665,7 +692,28 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
     }
 });
 
-// ========== SETTINGS FORM SUBMIT ==========
+// ========== SETTINGS ==========
+async function loadSettings() {
+    try {
+        const response = await fetch(`${API_URL}/settings`);
+        const settings = await response.json();
+
+        document.getElementById('siteTitle').value = settings.siteTitle || '';
+        document.getElementById('siteDescription').value = settings.siteDescription || '';
+        document.getElementById('adminEmail').value = settings.adminEmail || '';
+        
+        const maintenanceCheck = document.getElementById('maintenanceMode');
+        if (maintenanceCheck) maintenanceCheck.checked = settings.maintenanceMode || false;
+        
+        document.getElementById('copyrightText').value = settings.copyrightText || 'All rights reserved';
+        document.getElementById('siteLanguage').value = settings.siteLanguage || 'en';
+        
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        showAlert('Error loading settings', 'error');
+    }
+}
+
 document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -694,13 +742,13 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
         const data = await response.json();
         
         if (data.success) {
-            alert('Settings updated successfully!');
+            showAlert('Settings updated successfully!');
             loadSettings();
         } else {
-            alert('Error updating settings');
+            showAlert('Error updating settings', 'error');
         }
     } catch (error) {
-        alert('Error updating settings');
+        showAlert('Error updating settings', 'error');
         console.error(error);
     } finally {
         submitBtn.textContent = originalText;
@@ -1018,7 +1066,7 @@ window.closeEditProjectModal = function() {
 document.getElementById('logoutBtn')?.addEventListener('click', () => {
     if (confirm('Are you sure you want to logout?')) {
         localStorage.clear();
-        window.location.href = 'index.html';
+        window.location.href = 'index.html?error=logout';
     }
 });
 
@@ -1027,7 +1075,7 @@ setInterval(() => {
     const loginTime = localStorage.getItem('adminLoginTime');
     if (loginTime && (Date.now() - parseInt(loginTime) > SESSION_TIMEOUT)) {
         localStorage.clear();
-        window.location.href = 'index.html';
+        window.location.href = 'index.html?error=expired';
     }
 }, 60000);
 
@@ -1036,7 +1084,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('📊 Admin Dashboard Initialized');
     
     const adminUser = localStorage.getItem('adminUser') || 'Admin';
-    document.getElementById('adminUsername').textContent = adminUser;
+    const usernameEl = document.getElementById('adminUsername');
+    if (usernameEl) usernameEl.textContent = adminUser;
     
     showSection('dashboard');
     

@@ -1,43 +1,41 @@
 const mongoose = require('mongoose');
 
 /**
- * Skill Schema - Technical skills
- * Stores skills with icons, levels, and categories
+ * Message Schema - Contact form messages
+ * Stores all messages sent from the contact form
  */
-const SkillSchema = new mongoose.Schema({
+const MessageSchema = new mongoose.Schema({
     name: { 
         type: String, 
-        required: [true, 'Skill name is required'],
-        trim: true,
-        unique: true 
-    },
-    level: { 
-        type: Number, 
-        required: [true, 'Skill level is required'],
-        min: [0, 'Level must be between 0 and 100'],
-        max: [100, 'Level must be between 0 and 100']
-    },
-    icon: { 
-        type: String, 
-        required: [true, 'Icon class is required'],
+        required: [true, 'Name is required'],
         trim: true 
     },
-    color: { 
+    email: { 
         type: String, 
-        default: '#00f3ff',
-        match: [/^#[0-9A-F]{6}$/i, 'Invalid color format'] 
+        required: [true, 'Email is required'],
+        lowercase: true,
+        trim: true 
     },
-    category: { 
+    subject: { 
         type: String, 
-        enum: ['frontend', 'backend', 'database', 'tools', 'design', 'general'],
-        default: 'general' 
+        default: 'No Subject',
+        trim: true 
+    },
+    message: { 
+        type: String, 
+        required: [true, 'Message is required'],
+        trim: true 
+    },
+    read: { 
+        type: Boolean, 
+        default: false 
     }
 }, { 
     timestamps: true 
 });
 
-// Index for sorting by level
-SkillSchema.index({ level: -1 });
-SkillSchema.index({ category: 1 });
+// Index for better query performance
+MessageSchema.index({ createdAt: -1 });
+MessageSchema.index({ read: 1 });
 
-module.exports = mongoose.model('Skill', SkillSchema);
+module.exports = mongoose.model('Message', MessageSchema);

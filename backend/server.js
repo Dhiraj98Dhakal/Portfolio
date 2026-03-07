@@ -23,7 +23,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// CORS MIDDLEWARE - COMPLETE FIX
+// CORS MIDDLEWARE - COMPLETE FIX FOR NETLIFY & RENDER
 // ============================================
 const corsOptions = {
     origin: [
@@ -99,13 +99,17 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 },
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     fileFilter: (req, file, cb) => {
         const allowedTypes = /jpeg|jpg|png|gif|webp|ico|svg/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
         const mimetype = allowedTypes.test(file.mimetype);
-        if (mimetype && extname) return cb(null, true);
-        cb(new Error('Only image files are allowed'));
+
+        if (mimetype && extname) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'));
+        }
     }
 });
 
@@ -117,11 +121,19 @@ const authenticateToken = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ success: false, message: 'No token provided' });
+        return res.status(401).json({
+            success: false,
+            message: 'No token provided'
+        });
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ success: false, message: 'Invalid or expired token' });
+        if (err) {
+            return res.status(403).json({
+                success: false,
+                message: 'Invalid or expired token'
+            });
+        }
         req.user = user;
         next();
     });
@@ -132,6 +144,7 @@ const authenticateToken = (req, res, next) => {
 // ============================================
 async function initializeData() {
     try {
+        // Profile
         const profileCount = await Profile.countDocuments();
         if (profileCount === 0) {
             await Profile.create({
@@ -153,21 +166,57 @@ async function initializeData() {
                 shortBio: "Creating digital experiences that make a difference.",
                 contactTitle: "Let's work together",
                 contactText: "I'm always interested in hearing about new opportunities.",
-                stats: { projects: "15+", certificates: "8", clients: "10+", years: "2" },
-                socialLinks: { github: "", linkedin: "", twitter: "", instagram: "", facebook: "", youtube: "" }
+                stats: {
+                    projects: "15+",
+                    certificates: "8",
+                    clients: "10+",
+                    years: "2"
+                },
+                socialLinks: {
+                    github: "",
+                    linkedin: "",
+                    twitter: "",
+                    instagram: "",
+                    facebook: "",
+                    youtube: ""
+                }
             });
             console.log('✅ Created default profile');
         }
 
+        // Projects
         const projectCount = await Project.countDocuments();
         if (projectCount === 0) {
             await Project.create([
-                { title: "Smart Attendance System", description: "QR code based attendance system", technologies: ["React", "Node.js", "MongoDB"], github: "https://github.com", demo: "https://demo.com", featured: true },
-                { title: "E-Learning Platform", description: "Online learning platform", technologies: ["Next.js", "Tailwind", "Prisma"], github: "https://github.com", demo: "https://demo.com", featured: true }
+                {
+                    title: "Smart Attendance System",
+                    description: "QR code based attendance system for college students with real-time tracking.",
+                    technologies: ["React", "Node.js", "MongoDB", "QR Code"],
+                    github: "https://github.com",
+                    demo: "https://demo.com",
+                    featured: true
+                },
+                {
+                    title: "E-Learning Platform",
+                    description: "Modern online learning platform with video courses, quizzes, and progress tracking.",
+                    technologies: ["Next.js", "Tailwind CSS", "Prisma", "PostgreSQL"],
+                    github: "https://github.com",
+                    demo: "https://demo.com",
+                    featured: true
+                },
+                {
+                    title: "Weather App",
+                    description: "Real-time weather application with beautiful animations and 7-day forecast.",
+                    technologies: ["React", "OpenWeather API", "Chart.js"],
+                    github: "https://github.com",
+                    demo: "https://demo.com",
+                    featured: false
+                }
             ]);
             console.log('✅ Created default projects');
         }
 
+        // Skills
         const skillCount = await Skill.countDocuments();
         if (skillCount === 0) {
             await Skill.create([
@@ -175,11 +224,15 @@ async function initializeData() {
                 { name: "CSS3", level: 92, icon: "fab fa-css3-alt", color: "#1572B6", category: "frontend" },
                 { name: "JavaScript", level: 88, icon: "fab fa-js", color: "#F7DF1E", category: "frontend" },
                 { name: "React", level: 85, icon: "fab fa-react", color: "#61DAFB", category: "frontend" },
-                { name: "Node.js", level: 78, icon: "fab fa-node", color: "#339933", category: "backend" }
+                { name: "Node.js", level: 78, icon: "fab fa-node", color: "#339933", category: "backend" },
+                { name: "PHP", level: 70, icon: "fab fa-php", color: "#777BB4", category: "backend" },
+                { name: "MySQL", level: 75, icon: "fas fa-database", color: "#4479A1", category: "database" },
+                { name: "Git", level: 85, icon: "fab fa-git-alt", color: "#F05032", category: "tools" }
             ]);
             console.log('✅ Created default skills');
         }
 
+        // Settings
         const settingsCount = await Settings.countDocuments();
         if (settingsCount === 0) {
             await Settings.create({
@@ -235,9 +288,16 @@ app.get('/api/test', (req, res) => {
         timestamp: new Date().toISOString(),
         database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
         endpoints: [
-            '/api/profile', '/api/projects', '/api/skills', '/api/messages',
-            '/api/settings', '/api/testimonials', '/api/uploads', '/api/backup',
-            '/api/admin/login', '/api/test'
+            '/api/profile',
+            '/api/projects',
+            '/api/skills',
+            '/api/messages',
+            '/api/settings',
+            '/api/testimonials',
+            '/api/uploads',
+            '/api/backup',
+            '/api/admin/login',
+            '/api/test'
         ]
     });
 });
@@ -247,10 +307,20 @@ app.get('/api/test', (req, res) => {
 // ============================================
 app.post('/api/admin/login', (req, res) => {
     const { username, password } = req.body;
+
+    console.log('🔐 Login attempt:', { username });
+
     if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
-        const token = jwt.sign({ username, loginTime: Date.now() }, process.env.JWT_SECRET, { expiresIn: '24h' });
+        const token = jwt.sign(
+            { username, loginTime: Date.now() },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        console.log('✅ Login successful');
         res.json({ success: true, token, message: 'Login successful' });
     } else {
+        console.log('❌ Login failed');
         res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
 });
@@ -258,6 +328,7 @@ app.post('/api/admin/login', (req, res) => {
 // ============================================
 // PROFILE API
 // ============================================
+
 app.get('/api/profile', async (req, res) => {
     try {
         let profile = await Profile.findOne();
@@ -289,65 +360,133 @@ app.get('/api/profile', async (req, res) => {
     }
 });
 
-// ===== PUT /api/profile - FINAL FIXED VERSION =====
+// ===== PUT /api/profile - COMPLETE FIXED VERSION =====
 app.put('/api/profile', authenticateToken, upload.fields([
     { name: 'profileImage', maxCount: 1 },
     { name: 'aboutImage', maxCount: 1 }
 ]), async (req, res) => {
     try {
         let profile = await Profile.findOne();
-        if (!profile) profile = new Profile();
+        if (!profile) {
+            profile = new Profile();
+        }
 
         console.log('\n' + '='.repeat(60));
         console.log('📥 PROFILE UPDATE REQUEST');
         console.log('='.repeat(60));
-
+        console.log('Body fields:', Object.keys(req.body));
+        
         // Update text fields
-        const textFields = ['name', 'title', 'bio', 'aboutText', 'email', 'phone',
+        const textFields = [
+            'name', 'title', 'bio', 'aboutText', 'email', 'phone',
             'location', 'country', 'experience', 'initials', 'education',
-            'cvLink', 'website', 'shortBio', 'contactTitle', 'contactText'];
+            'cvLink', 'website', 'shortBio', 'contactTitle', 'contactText'
+        ];
 
         textFields.forEach(field => {
-            if (req.body[field] !== undefined) profile[field] = req.body[field];
+            if (req.body[field] !== undefined) {
+                profile[field] = req.body[field];
+            }
         });
 
         // ===== SOCIAL LINKS - CRITICAL FIX =====
         if (req.body.socialLinks) {
             try {
+                console.log('\n📤 SOCIAL LINKS PROCESSING:');
+                
+                // Get socialLinks - यो object नै हुनुपर्छ
                 let socialLinks = req.body.socialLinks;
-                if (typeof socialLinks === 'string') socialLinks = JSON.parse(socialLinks);
+                console.log('1. Raw socialLinks type:', typeof socialLinks);
+                console.log('2. Raw socialLinks value:', socialLinks);
                 
-                if (!profile.socialLinks) profile.socialLinks = {};
+                // If it's a string, parse it
+                if (typeof socialLinks === 'string') {
+                    console.log('3. Parsing string to object...');
+                    socialLinks = JSON.parse(socialLinks);
+                }
                 
-                // Update each social link
-                if (socialLinks.github !== undefined) profile.socialLinks.github = socialLinks.github || '';
-                if (socialLinks.linkedin !== undefined) profile.socialLinks.linkedin = socialLinks.linkedin || '';
-                if (socialLinks.twitter !== undefined) profile.socialLinks.twitter = socialLinks.twitter || '';
-                if (socialLinks.instagram !== undefined) profile.socialLinks.instagram = socialLinks.instagram || '';
-                if (socialLinks.facebook !== undefined) profile.socialLinks.facebook = socialLinks.facebook || '';
-                if (socialLinks.youtube !== undefined) profile.socialLinks.youtube = socialLinks.youtube || '';
+                console.log('4. Parsed socialLinks:', socialLinks);
                 
-                console.log('✅ Updated social links:', profile.socialLinks);
+                // Initialize if not exists
+                if (!profile.socialLinks) {
+                    profile.socialLinks = {};
+                }
+                
+                // IMPORTANT: Instagram value check
+                console.log('5. Instagram value received:', socialLinks.instagram);
+                
+                // Update each social link DIRECTLY
+                if (socialLinks.github !== undefined) {
+                    profile.socialLinks.github = socialLinks.github || '';
+                    console.log('6a. Set github:', profile.socialLinks.github);
+                }
+                
+                if (socialLinks.linkedin !== undefined) {
+                    profile.socialLinks.linkedin = socialLinks.linkedin || '';
+                    console.log('6b. Set linkedin:', profile.socialLinks.linkedin);
+                }
+                
+                if (socialLinks.twitter !== undefined) {
+                    profile.socialLinks.twitter = socialLinks.twitter || '';
+                    console.log('6c. Set twitter:', profile.socialLinks.twitter);
+                }
+                
+                if (socialLinks.instagram !== undefined) {
+                    profile.socialLinks.instagram = socialLinks.instagram || '';
+                    console.log('6d. 🔴 SET INSTAGRAM TO:', profile.socialLinks.instagram);
+                }
+                
+                if (socialLinks.facebook !== undefined) {
+                    profile.socialLinks.facebook = socialLinks.facebook || '';
+                    console.log('6e. Set facebook:', profile.socialLinks.facebook);
+                }
+                
+                if (socialLinks.youtube !== undefined) {
+                    profile.socialLinks.youtube = socialLinks.youtube || '';
+                    console.log('6f. Set youtube:', profile.socialLinks.youtube);
+                }
+                
+                console.log('7. Final socialLinks object:', profile.socialLinks);
+                
+                // Mark as modified
                 profile.markModified('socialLinks');
+                
             } catch (e) {
-                console.error('❌ Social links error:', e);
+                console.error('❌ SOCIAL LINKS ERROR:', e);
             }
+        } else {
+            console.log('⚠️ No socialLinks in request body');
         }
 
         // Update images
         if (req.files) {
-            if (req.files.profileImage) profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
-            if (req.files.aboutImage) profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
+            if (req.files.profileImage) {
+                profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
+                console.log('📸 Profile image updated');
+            }
+            if (req.files.aboutImage) {
+                profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
+                console.log('📸 About image updated');
+            }
         }
 
+        // Save to database
+        console.log('\n💾 SAVING TO DATABASE...');
         const savedProfile = await profile.save();
-        console.log('✅ Profile saved successfully');
+        
+        console.log('✅ SAVED PROFILE SOCIAL LINKS:', savedProfile.socialLinks);
         console.log('✅ Instagram in DB:', savedProfile.socialLinks.instagram);
         console.log('='.repeat(60) + '\n');
-
-        res.json({ success: true, message: 'Profile updated successfully', profile: savedProfile });
+        
+        // Return the updated profile
+        res.json({ 
+            success: true, 
+            message: 'Profile updated successfully', 
+            profile: savedProfile 
+        });
+        
     } catch (error) {
-        console.error('❌ Profile update error:', error);
+        console.error('❌ PROFILE UPDATE ERROR:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -364,6 +503,18 @@ app.get('/api/projects', async (req, res) => {
     }
 });
 
+app.get('/api/projects/:id', async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) {
+            return res.status(404).json({ success: false, message: 'Project not found' });
+        }
+        res.json(project);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.post('/api/projects', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         const newProject = new Project({
@@ -375,6 +526,7 @@ app.post('/api/projects', authenticateToken, upload.single('image'), async (req,
             image: req.file ? `/uploads/${req.file.filename}` : null,
             featured: req.body.featured === 'true'
         });
+
         await newProject.save();
         res.status(201).json({ success: true, message: 'Project added successfully', project: newProject });
     } catch (error) {
@@ -385,7 +537,9 @@ app.post('/api/projects', authenticateToken, upload.single('image'), async (req,
 app.put('/api/projects/:id', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
-        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+        if (!project) {
+            return res.status(404).json({ success: false, message: 'Project not found' });
+        }
 
         project.title = req.body.title || project.title;
         project.description = req.body.description || project.description;
@@ -393,7 +547,10 @@ app.put('/api/projects/:id', authenticateToken, upload.single('image'), async (r
         project.github = req.body.github || project.github;
         project.demo = req.body.demo || project.demo;
         project.featured = req.body.featured === 'true';
-        if (req.file) project.image = `/uploads/${req.file.filename}`;
+
+        if (req.file) {
+            project.image = `/uploads/${req.file.filename}`;
+        }
 
         await project.save();
         res.json({ success: true, message: 'Project updated successfully', project });
@@ -428,6 +585,15 @@ app.post('/api/skills', authenticateToken, async (req, res) => {
         const newSkill = new Skill(req.body);
         await newSkill.save();
         res.status(201).json({ success: true, skill: newSkill });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.put('/api/skills/:id', authenticateToken, async (req, res) => {
+    try {
+        const skill = await Skill.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json({ success: true, skill });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -478,10 +644,26 @@ app.get('/api/messages/unread/count', authenticateToken, async (req, res) => {
     }
 });
 
+app.get('/api/messages/:id', authenticateToken, async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.id);
+        if (!message) {
+            return res.status(404).json({ success: false, message: 'Message not found' });
+        }
+        res.json(message);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     try {
-        await Message.findByIdAndUpdate(req.params.id, { read: true });
-        res.json({ success: true });
+        const message = await Message.findByIdAndUpdate(
+            req.params.id,
+            { read: true },
+            { new: true }
+        );
+        res.json({ success: true, message });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -497,12 +679,23 @@ app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
 });
 
 // ============================================
-// SETTINGS API
+// SETTINGS API - FIXED VERSION
 // ============================================
+
 app.get('/api/settings', async (req, res) => {
     try {
         let settings = await Settings.findOne();
-        if (!settings) settings = await Settings.create({});
+        if (!settings) {
+            settings = await Settings.create({
+                siteTitle: 'Dhiraj Dhakal - Portfolio',
+                siteDescription: 'BICTE Student | Developer | Tech Enthusiast',
+                adminEmail: 'admin@example.com',
+                maintenanceMode: false,
+                copyrightText: 'All rights reserved',
+                siteLanguage: 'en',
+                favicon: null
+            });
+        }
         res.json(settings);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -514,24 +707,37 @@ app.put('/api/settings', authenticateToken, upload.single('favicon'), async (req
         let settings = await Settings.findOne();
         if (!settings) settings = new Settings();
         
+        // Update text fields
         if (req.body.siteTitle) settings.siteTitle = req.body.siteTitle;
         if (req.body.siteDescription) settings.siteDescription = req.body.siteDescription;
         if (req.body.adminEmail) settings.adminEmail = req.body.adminEmail;
         if (req.body.copyrightText) settings.copyrightText = req.body.copyrightText;
         if (req.body.siteLanguage) settings.siteLanguage = req.body.siteLanguage;
+        
+        // Update boolean
         settings.maintenanceMode = req.body.maintenanceMode === 'true';
-        if (req.file) settings.favicon = `/uploads/${req.file.filename}`;
+        
+        // Update favicon
+        if (req.file) {
+            settings.favicon = `/uploads/${req.file.filename}`;
+            console.log('✅ Favicon updated:', settings.favicon);
+        }
         
         await settings.save();
+        console.log('✅ Settings saved');
+        
         res.json({ success: true, settings });
     } catch (error) {
+        console.error('❌ Settings update error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 // ============================================
-// TESTIMONIALS API - COMPLETE
+// TESTIMONIALS API
 // ============================================
+
+// Get all testimonials
 app.get('/api/testimonials', async (req, res) => {
     try {
         const testimonials = await Testimonial.find().sort('-createdAt');
@@ -541,6 +747,20 @@ app.get('/api/testimonials', async (req, res) => {
     }
 });
 
+// Get single testimonial
+app.get('/api/testimonials/:id', async (req, res) => {
+    try {
+        const testimonial = await Testimonial.findById(req.params.id);
+        if (!testimonial) {
+            return res.status(404).json({ success: false, message: 'Testimonial not found' });
+        }
+        res.json(testimonial);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Add testimonial (admin only)
 app.post('/api/testimonials', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         const testimonial = new Testimonial({
@@ -558,6 +778,32 @@ app.post('/api/testimonials', authenticateToken, upload.single('image'), async (
     }
 });
 
+// Update testimonial
+app.put('/api/testimonials/:id', authenticateToken, upload.single('image'), async (req, res) => {
+    try {
+        const testimonial = await Testimonial.findById(req.params.id);
+        if (!testimonial) {
+            return res.status(404).json({ success: false, message: 'Testimonial not found' });
+        }
+
+        testimonial.name = req.body.name || testimonial.name;
+        testimonial.position = req.body.position || testimonial.position;
+        testimonial.company = req.body.company || testimonial.company;
+        testimonial.content = req.body.content || testimonial.content;
+        testimonial.rating = parseInt(req.body.rating) || testimonial.rating;
+
+        if (req.file) {
+            testimonial.image = `/uploads/${req.file.filename}`;
+        }
+
+        await testimonial.save();
+        res.json({ success: true, testimonial });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete testimonial
 app.delete('/api/testimonials/:id', authenticateToken, async (req, res) => {
     try {
         await Testimonial.findByIdAndDelete(req.params.id);
@@ -572,7 +818,9 @@ app.delete('/api/testimonials/:id', authenticateToken, async (req, res) => {
 // ============================================
 app.get('/api/uploads', authenticateToken, (req, res) => {
     fs.readdir(uploadsDir, (err, files) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (err) {
+            return res.status(500).json({ success: false, error: err.message });
+        }
         res.json({ files });
     });
 });
@@ -606,6 +854,41 @@ app.get('/api/backup', authenticateToken, async (req, res) => {
     }
 });
 
+app.post('/api/restore', authenticateToken, async (req, res) => {
+    try {
+        const backup = req.body;
+        
+        if (backup.profile) {
+            await Profile.deleteMany({});
+            await Profile.create(backup.profile);
+        }
+        
+        if (backup.projects) {
+            await Project.deleteMany({});
+            await Project.insertMany(backup.projects);
+        }
+        
+        if (backup.skills) {
+            await Skill.deleteMany({});
+            await Skill.insertMany(backup.skills);
+        }
+        
+        if (backup.testimonials) {
+            await Testimonial.deleteMany({});
+            await Testimonial.insertMany(backup.testimonials);
+        }
+        
+        if (backup.settings) {
+            await Settings.deleteMany({});
+            await Settings.create(backup.settings);
+        }
+        
+        res.json({ success: true, message: 'Data restored successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============================================
 // SERVE STATIC FILES
 // ============================================
@@ -619,8 +902,11 @@ app.use('*', (req, res) => {
         res.status(404).json({ success: false, message: 'API endpoint not found' });
     } else {
         const frontend404Path = path.join(__dirname, '../404.html');
-        if (fs.existsSync(frontend404Path)) res.sendFile(frontend404Path);
-        else res.status(404).json({ success: false, message: 'Route not found' });
+        if (fs.existsSync(frontend404Path)) {
+            res.sendFile(frontend404Path);
+        } else {
+            res.status(404).json({ success: false, message: 'Route not found' });
+        }
     }
 });
 
@@ -629,7 +915,10 @@ app.use('*', (req, res) => {
 // ============================================
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
-    res.status(500).json({ success: false, message: err.message || 'Internal server error' });
+    res.status(500).json({ 
+        success: false, 
+        message: err.message || 'Internal server error'
+    });
 });
 
 // ============================================
