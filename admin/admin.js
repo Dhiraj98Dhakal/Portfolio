@@ -578,21 +578,24 @@ window.deleteSkill = async function(id) {
     }
 };
 
-// ========== SOCIAL LINKS - COMPLETE FIX ==========
+// ========== SOCIAL LINKS - FIXED VERSION ==========
 async function loadSocial() {
     try {
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
-        const links = profile.socialLinks || {};
-
+        
+        // Handle both possible data structures
+        const links = profile.socialLinks || profile;
+        
         console.log('📥 Loading social links:', links);
 
-        setValue('socialGithub', links.github || '');
-        setValue('socialLinkedin', links.linkedin || '');
-        setValue('socialTwitter', links.twitter || '');
-        setValue('socialInstagram', links.instagram || '');
-        setValue('socialFacebook', links.facebook || '');
-        setValue('socialYoutube', links.youtube || '');
+        // Set values with proper fallback
+        document.getElementById('socialGithub').value = links.github || '';
+        document.getElementById('socialLinkedin').value = links.linkedin || '';
+        document.getElementById('socialTwitter').value = links.twitter || '';
+        document.getElementById('socialInstagram').value = links.instagram || '';
+        document.getElementById('socialFacebook').value = links.facebook || '';
+        document.getElementById('socialYoutube').value = links.youtube || '';
         
     } catch (error) {
         console.error('Error loading social links:', error);
@@ -632,8 +635,21 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
             showAlert('Social links updated successfully!');
             console.log('✅ Social links update successful:', data.profile?.socialLinks);
             
-            // Verify by loading again
-            await loadSocial();
+            // Update form fields directly from response
+            if (data.profile && data.profile.socialLinks) {
+                const updated = data.profile.socialLinks;
+                document.getElementById('socialGithub').value = updated.github || '';
+                document.getElementById('socialLinkedin').value = updated.linkedin || '';
+                document.getElementById('socialTwitter').value = updated.twitter || '';
+                document.getElementById('socialInstagram').value = updated.instagram || '';
+                document.getElementById('socialFacebook').value = updated.facebook || '';
+                document.getElementById('socialYoutube').value = updated.youtube || '';
+                
+                console.log('📥 Updated social links from response:', updated);
+            } else {
+                // Fallback to reload if response doesn't contain updated data
+                await loadSocial();
+            }
             
             // Trigger frontend refresh
             localStorage.setItem('adminUpdate', Date.now());
