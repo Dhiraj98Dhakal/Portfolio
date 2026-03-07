@@ -1,5 +1,5 @@
 // backend/server.js - FINAL WORKING VERSION
-// ALL PROBLEMS SOLVED - SOCIAL LINKS WILL WORK
+// ALL PROBLEMS SOLVED - SOCIAL LINKS WORKING
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -24,12 +24,12 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// CORS MIDDLEWARE - COMPLETE FIX
+// CORS MIDDLEWARE - COMPLETE FIX WITH ALL NETLIFY URLS
 // ============================================
 const corsOptions = {
     origin: [
         'https://dhirajdhakal.netlify.app',
-        'https://dhirajgg.netlify.app', 
+        'https://dhirajgg.netlify.app',
         'https://portfolio-xqwu.onrender.com',
         'http://localhost:3000',
         'http://localhost:3001',
@@ -209,7 +209,7 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ============================================
-// PROFILE API - FIXED VERSION (SOCIAL LINKS WILL WORK)
+// PROFILE API - FIXED VERSION (SOCIAL LINKS WORKING)
 // ============================================
 app.get('/api/profile', async (req, res) => {
     try {
@@ -235,7 +235,7 @@ app.get('/api/profile', async (req, res) => {
     }
 });
 
-// ===== PUT /api/profile - SIMPLE WORKING VERSION =====
+// ===== PUT /api/profile - WORKING VERSION =====
 app.put('/api/profile', authenticateToken, upload.fields([
     { name: 'profileImage', maxCount: 1 },
     { name: 'aboutImage', maxCount: 1 }
@@ -247,18 +247,16 @@ app.put('/api/profile', authenticateToken, upload.fields([
         // ===== SIMPLE SOCIAL LINKS FIX =====
         if (req.body.socialLinks) {
             try {
-                // Get social links - could be string or object
                 let links = req.body.socialLinks;
                 if (typeof links === 'string') {
                     links = JSON.parse(links);
                 }
                 
-                // DIRECT ASSIGNMENT - NO CONDITIONS
                 profile.socialLinks = {
                     github: links.github || '',
                     linkedin: links.linkedin || '',
                     twitter: links.twitter || '',
-                    instagram: links.instagram || '',  // THIS WILL WORK
+                    instagram: links.instagram || '',
                     facebook: links.facebook || '',
                     youtube: links.youtube || ''
                 };
@@ -271,10 +269,18 @@ app.put('/api/profile', authenticateToken, upload.fields([
         }
 
         // Update other fields
-        const fields = ['name', 'title', 'bio', 'email', 'phone', 'location', 'country', 'experience', 'initials'];
+        const fields = ['name', 'title', 'bio', 'email', 'phone', 'location', 'country', 'experience', 'initials', 'education', 'cvLink', 'website', 'shortBio', 'contactTitle', 'contactText'];
         fields.forEach(field => {
             if (req.body[field] !== undefined) profile[field] = req.body[field];
         });
+
+        // Update stats
+        if (req.body.stats) {
+            try {
+                let stats = typeof req.body.stats === 'string' ? JSON.parse(req.body.stats) : req.body.stats;
+                profile.stats = { ...profile.stats, ...stats };
+            } catch (e) {}
+        }
 
         // Handle images
         if (req.files) {
@@ -283,13 +289,7 @@ app.put('/api/profile', authenticateToken, upload.fields([
         }
 
         await profile.save();
-        
-        // Return updated profile
-        res.json({ 
-            success: true, 
-            profile: profile,
-            message: 'Profile updated successfully'
-        });
+        res.json({ success: true, profile });
         
     } catch (error) {
         console.error('Profile update error:', error);
@@ -309,6 +309,16 @@ app.get('/api/projects', async (req, res) => {
     }
 });
 
+app.get('/api/projects/:id', async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+        res.json(project);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.post('/api/projects', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         const project = new Project({
@@ -322,6 +332,26 @@ app.post('/api/projects', authenticateToken, upload.single('image'), async (req,
         });
         await project.save();
         res.status(201).json({ success: true, project });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.put('/api/projects/:id', authenticateToken, upload.single('image'), async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
+
+        project.title = req.body.title || project.title;
+        project.description = req.body.description || project.description;
+        project.technologies = req.body.technologies ? req.body.technologies.split(',').map(t => t.trim()) : project.technologies;
+        project.github = req.body.github || project.github;
+        project.demo = req.body.demo || project.demo;
+        project.featured = req.body.featured === 'true';
+        if (req.file) project.image = `/uploads/${req.file.filename}`;
+
+        await project.save();
+        res.json({ success: true, project });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -353,6 +383,15 @@ app.post('/api/skills', authenticateToken, async (req, res) => {
         const skill = new Skill(req.body);
         await skill.save();
         res.status(201).json({ success: true, skill });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.put('/api/skills/:id', authenticateToken, async (req, res) => {
+    try {
+        const skill = await Skill.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json({ success: true, skill });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -398,6 +437,16 @@ app.get('/api/messages/unread/count', authenticateToken, async (req, res) => {
     }
 });
 
+app.get('/api/messages/:id', authenticateToken, async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.id);
+        if (!message) return res.status(404).json({ success: false, message: 'Message not found' });
+        res.json(message);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     try {
         await Message.findByIdAndUpdate(req.params.id, { read: true });
@@ -437,7 +486,9 @@ app.put('/api/settings', authenticateToken, upload.single('favicon'), async (req
         if (req.body.siteTitle) settings.siteTitle = req.body.siteTitle;
         if (req.body.siteDescription) settings.siteDescription = req.body.siteDescription;
         if (req.body.adminEmail) settings.adminEmail = req.body.adminEmail;
-        if (req.body.maintenanceMode) settings.maintenanceMode = req.body.maintenanceMode === 'true';
+        if (req.body.copyrightText) settings.copyrightText = req.body.copyrightText;
+        if (req.body.siteLanguage) settings.siteLanguage = req.body.siteLanguage;
+        settings.maintenanceMode = req.body.maintenanceMode === 'true';
         if (req.file) settings.favicon = `/uploads/${req.file.filename}`;
         
         await settings.save();
@@ -459,6 +510,16 @@ app.get('/api/testimonials', async (req, res) => {
     }
 });
 
+app.get('/api/testimonials/:id', async (req, res) => {
+    try {
+        const testimonial = await Testimonial.findById(req.params.id);
+        if (!testimonial) return res.status(404).json({ success: false, message: 'Testimonial not found' });
+        res.json(testimonial);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.post('/api/testimonials', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         const testimonial = new Testimonial({
@@ -471,6 +532,25 @@ app.post('/api/testimonials', authenticateToken, upload.single('image'), async (
         });
         await testimonial.save();
         res.status(201).json({ success: true, testimonial });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.put('/api/testimonials/:id', authenticateToken, upload.single('image'), async (req, res) => {
+    try {
+        const testimonial = await Testimonial.findById(req.params.id);
+        if (!testimonial) return res.status(404).json({ success: false, message: 'Testimonial not found' });
+
+        testimonial.name = req.body.name || testimonial.name;
+        testimonial.position = req.body.position || testimonial.position;
+        testimonial.company = req.body.company || testimonial.company;
+        testimonial.content = req.body.content || testimonial.content;
+        testimonial.rating = parseInt(req.body.rating) || testimonial.rating;
+        if (req.file) testimonial.image = `/uploads/${req.file.filename}`;
+
+        await testimonial.save();
+        res.json({ success: true, testimonial });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -506,6 +586,56 @@ app.delete('/api/uploads/:filename', authenticateToken, (req, res) => {
 });
 
 // ============================================
+// BACKUP & RESTORE API
+// ============================================
+app.get('/api/backup', authenticateToken, async (req, res) => {
+    try {
+        const backup = {
+            profile: await Profile.findOne(),
+            projects: await Project.find(),
+            skills: await Skill.find(),
+            testimonials: await Testimonial.find(),
+            settings: await Settings.findOne(),
+            timestamp: new Date().toISOString()
+        };
+        res.json(backup);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/restore', authenticateToken, async (req, res) => {
+    try {
+        const backup = req.body;
+        
+        if (backup.profile) {
+            await Profile.deleteMany({});
+            await Profile.create(backup.profile);
+        }
+        if (backup.projects) {
+            await Project.deleteMany({});
+            await Project.insertMany(backup.projects);
+        }
+        if (backup.skills) {
+            await Skill.deleteMany({});
+            await Skill.insertMany(backup.skills);
+        }
+        if (backup.testimonials) {
+            await Testimonial.deleteMany({});
+            await Testimonial.insertMany(backup.testimonials);
+        }
+        if (backup.settings) {
+            await Settings.deleteMany({});
+            await Settings.create(backup.settings);
+        }
+        
+        res.json({ success: true, message: 'Data restored successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============================================
 // SERVE STATIC FILES
 // ============================================
 app.use(express.static(path.join(__dirname, '..')));
@@ -522,10 +652,28 @@ app.use('*', (req, res) => {
 });
 
 // ============================================
+// ERROR HANDLING MIDDLEWARE
+// ============================================
+app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Internal server error' });
+});
+
+// ============================================
 // START SERVER
 // ============================================
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n✅ Server running on port ${PORT}`);
+    console.log('\n' + '='.repeat(60));
+    console.log('✅ SERVER STARTED SUCCESSFULLY');
+    console.log('='.repeat(60));
+    console.log(`📍 PORT: ${PORT}`);
     console.log(`📍 URL: https://portfolio-xqwu.onrender.com`);
-    console.log(`📍 Test API: https://portfolio-xqwu.onrender.com/api/test\n`);
+    console.log(`📍 Test API: https://portfolio-xqwu.onrender.com/api/test`);
+    console.log('='.repeat(60));
+    console.log(`📁 Uploads Directory: ${uploadsDir}`);
+    console.log('='.repeat(60));
+    console.log('🔐 Admin Login:');
+    console.log(`   Username: ${process.env.ADMIN_USERNAME || 'admin'}`);
+    console.log(`   Password: ${process.env.ADMIN_PASSWORD || 'admin123'}`);
+    console.log('='.repeat(60) + '\n');
 });
