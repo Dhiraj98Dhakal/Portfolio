@@ -1079,6 +1079,35 @@ setInterval(() => {
     }
 }, 60000);
 
+// admin/admin.js
+
+async function updateSocialLinks() {
+    const token = localStorage.getItem('adminToken'); // या login बाट save token
+    const socialLinks = {
+        instagram: document.getElementById('instagramInput').value,
+        twitter: document.getElementById('twitterInput').value
+    };
+
+    try {
+        const res = await fetch('http://localhost:3001/api/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ socialLinks })
+        });
+        const data = await res.json();
+        console.log('Updated profile:', data);
+        alert('Social links updated successfully!');
+    } catch (err) {
+        console.error('Error updating social links:', err);
+    }
+}
+
+// Bind function to form submit or button
+document.getElementById('updateSocialLinksBtn').addEventListener('click', updateSocialLinks);
+
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('📊 Admin Dashboard Initialized');

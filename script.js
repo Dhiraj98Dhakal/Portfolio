@@ -69,21 +69,17 @@ function updateProfile(profile) {
             const url = profile.socialLinks[platform];
             
             if (url && url.trim() !== '') {
-                // Set href
-                el.href = url;
-                
-                // Ensure proper attributes for links
-                el.setAttribute('target', '_blank');
-                el.setAttribute('rel', 'noopener noreferrer');
-                
-                // Make sure it's visible and clickable
-                el.style.display = 'flex';
-                el.style.pointerEvents = 'auto';
-                el.style.cursor = 'pointer';
-                el.style.opacity = '1';
-                
-                console.log(`✅ Set ${platform} to:`, url);
-            } else {
+
+    el.href = url;
+    el.setAttribute('target', '_blank');
+    el.setAttribute('rel', 'noopener noreferrer');
+
+    el.style.display = 'inline-flex';
+    el.style.pointerEvents = 'auto';
+    el.style.cursor = 'pointer';
+    el.style.opacity = '1';
+
+} else {
                 // Hide if no URL
                 el.style.display = 'none';
                 console.log(`❌ Hidden ${platform}`);
