@@ -12,11 +12,9 @@ console.log('📍 API URL:', API_URL);
 
 // ========== FAVICON SETUP ==========
 function setFavicon(iconUrl) {
-    // Remove existing favicon
     const existingLinks = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]');
     existingLinks.forEach(link => link.remove());
     
-    // Set main favicon
     if (iconUrl) {
         const link = document.createElement('link');
         link.rel = 'icon';
@@ -24,7 +22,6 @@ function setFavicon(iconUrl) {
         link.href = iconUrl;
         document.head.appendChild(link);
         
-        // Apple touch icon
         const appleLink = document.createElement('link');
         appleLink.rel = 'apple-touch-icon';
         appleLink.href = iconUrl;
@@ -32,7 +29,6 @@ function setFavicon(iconUrl) {
         
         console.log('✅ Favicon set to:', iconUrl);
     } else {
-        // Default fallback
         const link = document.createElement('link');
         link.rel = 'icon';
         link.type = 'image/png';
@@ -49,18 +45,7 @@ async function loadFavicon() {
         if (settings.favicon) {
             setFavicon(`${BASE_URL}${settings.favicon}`);
         } else {
-            // Check uploads for favicon
-            const uploadsRes = await fetch(`${API_URL}/uploads`);
-            const uploads = await uploadsRes.json();
-            const faviconFile = uploads.files?.find(f => 
-                f.includes('favicon') || f.includes('icon')
-            );
-            
-            if (faviconFile) {
-                setFavicon(`${BASE_URL}/uploads/${faviconFile}`);
-            } else {
-                setFavicon('/icons/favicon.png');
-            }
+            setFavicon('/icons/favicon.png');
         }
     } catch (error) {
         console.log('Using default favicon');
@@ -71,35 +56,43 @@ async function loadFavicon() {
 // ========== LOAD ALL DATA ==========
 async function loadAllData() {
     try {
+        console.log('🔄 Loading data from:', API_URL);
+        
         // Load profile
         const profileRes = await fetch(`${API_URL}/profile`);
         const profile = await profileRes.json();
+        console.log('📥 Profile data:', profile);
         updateProfileData(profile);
 
         // Load skills
         const skillsRes = await fetch(`${API_URL}/skills`);
         const skills = await skillsRes.json();
+        console.log('📥 Skills data:', skills);
         updateSkills(skills);
 
         // Load projects
         const projectsRes = await fetch(`${API_URL}/projects`);
         const projects = await projectsRes.json();
+        console.log('📥 Projects data:', projects);
         updateProjects(projects);
 
         // Load settings
         const settingsRes = await fetch(`${API_URL}/settings`);
         const settings = await settingsRes.json();
+        console.log('📥 Settings data:', settings);
         updateSettings(settings);
 
         console.log('✅ All data loaded at', new Date().toLocaleTimeString());
     } catch (error) {
-        console.log('❌ Backend not connected, using default data');
+        console.log('❌ Backend not connected, using default data:', error);
         loadDefaultData();
     }
 }
 
 // ========== UPDATE PROFILE DATA ==========
 function updateProfileData(profile) {
+    console.log('📤 Updating profile data in DOM...');
+    
     // Update text elements
     document.querySelectorAll('[data-profile]').forEach(el => {
         const key = el.getAttribute('data-profile');
@@ -107,34 +100,24 @@ function updateProfileData(profile) {
             if (el.tagName === 'IMG') {
                 el.src = profile[key].startsWith('http') ? profile[key] : `${BASE_URL}${profile[key]}`;
                 el.onerror = () => { el.src = '/images/default-profile.jpg'; };
+                console.log(`✅ Updated image ${key}:`, el.src);
             } else if (el.tagName === 'A' && key.includes('email')) {
                 el.href = `mailto:${profile[key]}`;
                 el.textContent = profile[key];
+                console.log(`✅ Updated email:`, profile[key]);
             } else if (el.tagName === 'A' && key.includes('phone')) {
                 el.href = `tel:${profile[key]}`;
                 el.textContent = profile[key];
+                console.log(`✅ Updated phone:`, profile[key]);
             } else {
                 el.textContent = profile[key];
+                console.log(`✅ Updated text ${key}:`, profile[key]);
             }
         }
     });
 
-    // Update social links - FIXED VERSION
-    if (profile.socialLinks) {
-        document.querySelectorAll('[data-social]').forEach(el => {
-            const platform = el.getAttribute('data-social');
-            const url = profile.socialLinks[platform];
-            
-            if (url && url.trim() !== '') {
-                el.href = url;
-                el.style.display = 'flex';
-                el.target = '_blank';
-                el.rel = 'noopener noreferrer';
-            } else {
-                el.style.display = 'none';
-            }
-        });
-    }
+    // Update social links
+    updateSocialLinks(profile);
 
     // Update stats
     if (profile.stats) {
@@ -142,14 +125,42 @@ function updateProfileData(profile) {
             const key = el.getAttribute('data-stat');
             if (profile.stats[key]) {
                 el.textContent = profile.stats[key];
+                console.log(`✅ Updated stat ${key}:`, profile.stats[key]);
             }
         });
     }
 
-    // Update title
+    // Update document title
     if (profile.name) {
         document.title = `${profile.name} - Portfolio`;
     }
+}
+
+// ========== UPDATE SOCIAL LINKS ==========
+function updateSocialLinks(profile) {
+    if (!profile || !profile.socialLinks) {
+        console.log('⚠️ No social links in profile');
+        return;
+    }
+    
+    const links = profile.socialLinks;
+    console.log('📤 Updating social links:', links);
+    
+    document.querySelectorAll('[data-social]').forEach(el => {
+        const platform = el.getAttribute('data-social');
+        const url = links[platform];
+        
+        if (url && url.trim() !== '') {
+            el.href = url;
+            el.style.display = 'flex';
+            el.target = '_blank';
+            el.rel = 'noopener noreferrer';
+            console.log(`✅ Updated ${platform}:`, url);
+        } else {
+            el.style.display = 'none';
+            console.log(`❌ Hidden ${platform} - no URL`);
+        }
+    });
 }
 
 // ========== UPDATE SKILLS ==========
@@ -174,6 +185,8 @@ function updateSkills(skills) {
             <span class="skill-percentage">${skill.level}%</span>
         </div>
     `).join('');
+    
+    console.log('✅ Skills updated:', skills.length);
 }
 
 // ========== UPDATE PROJECTS ==========
@@ -221,6 +234,7 @@ function updateProjects(projects) {
     `}).join('');
     
     initProjectFilters();
+    console.log('✅ Projects updated:', projects.length);
 }
 
 // ========== UPDATE SETTINGS ==========
@@ -239,6 +253,8 @@ function updateSettings(settings) {
     if (settings.siteLanguage) {
         document.documentElement.lang = settings.siteLanguage;
     }
+    
+    console.log('✅ Settings updated');
 }
 
 // ========== PROJECT FILTERS ==========
@@ -299,6 +315,7 @@ function initContactForm() {
                 showNotification('Error sending message', 'error');
             }
         } catch (error) {
+            console.error('Contact form error:', error);
             showNotification('Error sending message', 'error');
         } finally {
             submitBtn.innerHTML = originalText;
@@ -338,6 +355,8 @@ function showNotification(message, type = 'success') {
 
 // ========== DEFAULT DATA ==========
 function loadDefaultData() {
+    console.log('📥 Loading default data...');
+    
     updateSkills([
         { name: 'HTML5', level: 95, icon: 'fab fa-html5', color: '#E34F26' },
         { name: 'CSS3', level: 92, icon: 'fab fa-css3-alt', color: '#1572B6' },
@@ -440,14 +459,6 @@ function updateCurrentYear() {
     });
 }
 
-// ========== AUTO REFRESH ==========
-function startAutoRefresh() {
-    setInterval(() => {
-        console.log('🔄 Auto-refreshing...');
-        loadAllData();
-    }, REFRESH_INTERVAL);
-}
-
 // ========== TYPING ANIMATION ==========
 function initTypingAnimation() {
     const typedText = document.querySelector('.typed-text');
@@ -480,6 +491,27 @@ function initTypingAnimation() {
     type();
 }
 
+// ========== AUTO REFRESH (कम समयमा) ==========
+function startAutoRefresh() {
+    // पुरानो interval clear गर्ने
+    if (window.refreshInterval) {
+        clearInterval(window.refreshInterval);
+    }
+    
+    // नयाँ interval set गर्ने (60 seconds)
+    window.refreshInterval = setInterval(() => {
+        console.log('🔄 Auto-refreshing data...');
+        loadAllData();
+    }, 60000); // 60 seconds
+}
+
+// ========== MANUAL REFRESH (Admin Update पछि Call गर्न) ==========
+window.manualRefresh = function() {
+    console.log('🔄 Manual refresh triggered...');
+    loadAllData();
+    showNotification('Data refreshed!', 'success');
+};
+
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Portfolio initializing...');
@@ -499,11 +531,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     startAutoRefresh();
     
     console.log('✅ Portfolio ready!');
+    
+    // URL parameters check गर्ने
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('refreshed') === 'true') {
+        showNotification('Data refreshed from admin!', 'success');
+    }
 });
 
-// ========== DEBUG ==========
+// ========== EXPORT FOR DEBUG ==========
 window.debug = {
     reload: loadAllData,
-    favicon: loadFavicon,
+    refresh: () => {
+        loadAllData();
+        showNotification('Manual refresh complete!', 'success');
+    },
     api: API_URL
 };
+
+// ========== EVENT LISTENER FOR CUSTOM REFRESH ==========
+window.addEventListener('storage', (e) => {
+    if (e.key === 'adminUpdate') {
+        console.log('🔄 Admin update detected, refreshing...');
+        loadAllData();
+    }
+});
