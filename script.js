@@ -296,12 +296,13 @@ function updateProjects(projects) {
     console.log('✅ Projects updated:', projects.length);
 }
 
-// ========== UPDATE TESTIMONIALS ==========
+// ========== UPDATE TESTIMONIALS - FIXED ==========
 function updateTestimonials(testimonials) {
     const container = document.getElementById('testimonials-container');
     if (!container) return;
 
-    if (!testimonials || testimonials.length === 0) {
+    // Check if testimonials is array and has items
+    if (!Array.isArray(testimonials) || testimonials.length === 0) {
         container.style.display = 'none';
         return;
     }
@@ -311,15 +312,15 @@ function updateTestimonials(testimonials) {
         <div class="testimonial-card">
             <div class="testimonial-content">
                 <i class="fas fa-quote-left"></i>
-                <p>${t.content}</p>
+                <p>${t.content || ''}</p>
             </div>
             <div class="testimonial-author">
-                ${t.image ? `<img src="${BASE_URL}${t.image}" alt="${t.name}">` : ''}
+                ${t.image ? `<img src="${BASE_URL}${t.image}" alt="${t.name || 'Client'}">` : ''}
                 <div class="author-info">
-                    <h4>${t.name}</h4>
-                    <p>${t.position}${t.company ? ', ' + t.company : ''}</p>
+                    <h4>${t.name || 'Anonymous'}</h4>
+                    <p>${t.position || ''}${t.company ? ', ' + t.company : ''}</p>
                     <div class="rating">
-                        ${'⭐'.repeat(t.rating)}
+                        ${'⭐'.repeat(t.rating || 5)}
                     </div>
                 </div>
             </div>

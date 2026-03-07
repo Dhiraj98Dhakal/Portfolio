@@ -19,7 +19,6 @@ const Skill = require('./models/Skill');
 const Message = require('./models/Message');
 const Settings = require('./models/Settings');
 const Testimonial = require('./models/Testimonial');
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -700,6 +699,49 @@ app.post('/api/restore', authenticateToken, async (req, res) => {
         await Settings.create(backup.settings);
         
         res.json({ success: true, message: 'Data restored successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+// ============================================
+// TESTIMONIALS API - ADD THESE ROUTES
+// ============================================
+
+// Get all testimonials
+app.get('/api/testimonials', async (req, res) => {
+    try {
+        const testimonials = await Testimonial.find().sort('-createdAt');
+        res.json(testimonials);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Add testimonial (admin only)
+app.post('/api/testimonials', authenticateToken, upload.single('image'), async (req, res) => {
+    try {
+        const testimonial = new Testimonial({
+            name: req.body.name,
+            position: req.body.position || '',
+            company: req.body.company || '',
+            content: req.body.content,
+            rating: parseInt(req.body.rating) || 5,
+            image: req.file ? `/uploads/${req.file.filename}` : null
+        });
+        await testimonial.save();
+        res.status(201).json({ success: true, testimonial });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete testimonial
+app.delete('/api/testimonials/:id', authenticateToken, async (req, res) => {
+    try {
+        await Testimonial.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
