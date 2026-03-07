@@ -75,18 +75,16 @@ function updateProfile(profile) {
 
     // Update social links
     if (profile.socialLinks) {
-        document.querySelectorAll('[data-social]').forEach(el => {
-            const platform = el.getAttribute('data-social');
-            const url = profile.socialLinks[platform];
-            if (url && url.trim() !== '') {
-                el.href = url;
-                el.style.display = 'flex';
-                el.target = '_blank';
-                el.rel = 'noopener noreferrer';
-            } else {
-                el.style.display = 'none';
-            }
-        });
+        // Social links सेट गर्ने सही तरिका
+document.querySelectorAll('[data-social="instagram"]').forEach(el => {
+    const url = profile.socialLinks?.instagram;
+    if (url) {
+        el.href = url;
+        el.style.display = 'flex';
+    } else {
+        el.style.display = 'none';
+    }
+});
     }
 
     // Update stats
