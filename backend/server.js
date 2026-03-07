@@ -328,22 +328,8 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ============================================
-// PROFILE API - FIXED VERSION
+// PROFILE API - FIXED SOCIAL LINKS
 // ============================================
-
-app.get('/api/profile', async (req, res) => {
-    try {
-        let profile = await Profile.findOne();
-        if (!profile) {
-            profile = await Profile.create({});
-        }
-        console.log('📤 Profile data sent:', profile);
-        res.json(profile);
-    } catch (error) {
-        console.error('❌ Profile fetch error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
 
 app.put('/api/profile', authenticateToken, upload.fields([
     { name: 'profileImage', maxCount: 1 },
@@ -355,8 +341,9 @@ app.put('/api/profile', authenticateToken, upload.fields([
             profile = new Profile();
         }
 
-        console.log('📥 Profile update request body:', req.body);
-        console.log('📥 Profile update files:', req.files);
+        console.log('📥 Profile update received');
+        console.log('Body:', req.body);
+        console.log('Files:', req.files);
 
         // Update text fields
         const textFields = [
@@ -368,7 +355,6 @@ app.put('/api/profile', authenticateToken, upload.fields([
         textFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 profile[field] = req.body[field];
-                console.log(`✅ Updated ${field}:`, req.body[field]);
             }
         });
 
@@ -376,27 +362,22 @@ app.put('/api/profile', authenticateToken, upload.fields([
         if (req.body.stats) {
             try {
                 profile.stats = JSON.parse(req.body.stats);
-                console.log('✅ Updated stats:', profile.stats);
             } catch (e) {
                 console.log('Stats parse error:', e);
             }
         }
 
-        // FIXED: Update social links - सीधा object बाट
+        // FIXED: Update social links
         if (req.body.socialLinks) {
             try {
                 const socialLinks = JSON.parse(req.body.socialLinks);
-                console.log('📥 Received social links:', socialLinks);
+                console.log('📥 Social links received:', socialLinks);
                 
-                // प्रत्येक platform को लागि update गर्ने
-                if (profile.socialLinks) {
-                    Object.keys(socialLinks).forEach(key => {
-                        profile.socialLinks[key] = socialLinks[key];
-                        console.log(`✅ Updated social link ${key}:`, socialLinks[key]);
-                    });
-                } else {
-                    profile.socialLinks = socialLinks;
-                }
+                // पुरानो socialLinks लाई नयाँ सँग merge गर्ने
+                profile.socialLinks = {
+                    ...profile.socialLinks,
+                    ...socialLinks
+                };
             } catch (e) {
                 console.log('Social links parse error:', e);
             }
@@ -404,48 +385,30 @@ app.put('/api/profile', authenticateToken, upload.fields([
 
         // Update profile image
         if (req.files && req.files.profileImage) {
-            console.log('📸 New profile image:', req.files.profileImage[0].filename);
-            if (profile.profileImage) {
-                const oldImagePath = path.join(uploadsDir, path.basename(profile.profileImage));
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
-                    console.log('🗑️ Deleted old profile image');
-                }
-            }
             profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
+            console.log('✅ Profile image updated:', profile.profileImage);
         }
 
         // Update about image
         if (req.files && req.files.aboutImage) {
-            console.log('📸 New about image:', req.files.aboutImage[0].filename);
-            if (profile.aboutImage) {
-                const oldImagePath = path.join(uploadsDir, path.basename(profile.aboutImage));
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
-                    console.log('🗑️ Deleted old about image');
-                }
-            }
             profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
+            console.log('✅ About image updated:', profile.aboutImage);
         }
 
         await profile.save();
-        console.log('✅ Profile saved successfully:', profile);
+        console.log('✅ Profile saved successfully');
         
         res.json({
             success: true,
             message: 'Profile updated successfully',
-            profile: profile
+            profile
         });
         
     } catch (error) {
         console.error('❌ Profile update error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
-
 // ============================================
 // PROJECTS API
 // ============================================
@@ -558,8 +521,10 @@ app.delete('/api/skills/:id', authenticateToken, async (req, res) => {
 });
 
 // ============================================
-// MESSAGES API
+// MESSAGES API - FIXED ROUTES
 // ============================================
+
+// POST - नयाँ message सिर्जना गर्ने (public)
 app.post('/api/messages', async (req, res) => {
     try {
         const newMessage = new Message({
@@ -569,44 +534,94 @@ app.post('/api/messages', async (req, res) => {
             message: req.body.message
         });
         await newMessage.save();
+        console.log('📧 New message saved:', newMessage._id);
         res.status(201).json({ success: true, message: 'Message sent successfully!' });
     } catch (error) {
+        console.error('❌ Error saving message:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// GET - सबै messages (admin only)
 app.get('/api/messages', authenticateToken, async (req, res) => {
     try {
         const messages = await Message.find().sort('-createdAt');
+        console.log(`📧 Found ${messages.length} messages`);
         res.json(messages);
     } catch (error) {
+        console.error('❌ Error fetching messages:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// GET - unread count (specific route पहिले)
 app.get('/api/messages/unread/count', authenticateToken, async (req, res) => {
     try {
         const count = await Message.countDocuments({ read: false });
+        console.log('📧 Unread count:', count);
         res.json({ count });
     } catch (error) {
+        console.error('❌ Error getting unread count:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// GET - single message by ID - FIXED VERSION
+app.get('/api/messages/:id', authenticateToken, async (req, res) => {
+    try {
+        console.log('🔍 Looking for message with ID:', req.params.id);
+        
+        // Validate ID format
+        if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+            console.log('❌ Invalid ID format');
+            return res.status(400).json({ success: false, message: 'Invalid message ID format' });
+        }
+        
+        const message = await Message.findById(req.params.id);
+        
+        if (!message) {
+            console.log('❌ Message not found with ID:', req.params.id);
+            return res.status(404).json({ success: false, message: 'Message not found' });
+        }
+        
+        console.log('✅ Message found:', message._id);
+        res.json(message);
+    } catch (error) {
+        console.error('❌ Error fetching message:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// PUT - mark as read
 app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     try {
-        await Message.findByIdAndUpdate(req.params.id, { read: true });
-        res.json({ success: true });
+        const message = await Message.findByIdAndUpdate(
+            req.params.id,
+            { read: true },
+            { new: true }
+        );
+        if (!message) {
+            return res.status(404).json({ success: false, message: 'Message not found' });
+        }
+        console.log('✅ Message marked as read:', message._id);
+        res.json({ success: true, message: 'Message marked as read' });
     } catch (error) {
+        console.error('❌ Error marking message as read:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// DELETE - message
 app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
     try {
-        await Message.findByIdAndDelete(req.params.id);
-        res.json({ success: true });
+        const message = await Message.findByIdAndDelete(req.params.id);
+        if (!message) {
+            return res.status(404).json({ success: false, message: 'Message not found' });
+        }
+        console.log('✅ Message deleted:', message._id);
+        res.json({ success: true, message: 'Message deleted successfully' });
     } catch (error) {
+        console.error('❌ Error deleting message:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

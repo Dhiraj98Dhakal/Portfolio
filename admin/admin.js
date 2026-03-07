@@ -993,30 +993,64 @@ async function loadMessages() {
     }
 }
 
+// ============================================
+// VIEW MESSAGE DETAILS - FIXED
+// ============================================
 window.viewMessage = async function(id) {
     try {
+        console.log('👁️ Viewing message ID:', id);
+        
+        if (!id) {
+            showAlert('Invalid message ID', 'error');
+            return;
+        }
+        
+        // First, try to fetch the specific message
         const response = await fetchWithAuth(`${API_URL}/messages/${id}`);
+        
+        if (!response.ok) {
+            if (response.status === 404) {
+                showAlert('Message not found. It may have been deleted.', 'error');
+            } else {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return;
+        }
+        
         const message = await response.json();
+        console.log('📧 Message details:', message);
 
+        // Mark as read if not already read
         if (!message.read) {
-            await fetchWithAuth(`${API_URL}/messages/${id}/read`, { method: 'PUT' });
+            try {
+                await fetchWithAuth(`${API_URL}/messages/${id}/read`, { method: 'PUT' });
+                message.read = true;
+                updateUnreadCount();
+                loadMessages(); // Refresh the list
+            } catch (e) {
+                console.log('Error marking as read:', e);
+            }
         }
 
+        // Display message details
         const detailDiv = document.getElementById('messageDetail');
         detailDiv.innerHTML = `
             <div class="message-detail">
                 <div class="detail-row">
-                    <strong>From:</strong> ${escapeHtml(message.name)} (${escapeHtml(message.email)})
+                    <strong>From:</strong> 
+                    <span>${escapeHtml(message.name || 'Anonymous')} (${escapeHtml(message.email || 'No email')})</span>
                 </div>
                 <div class="detail-row">
-                    <strong>Subject:</strong> ${escapeHtml(message.subject || 'No Subject')}
+                    <strong>Subject:</strong> 
+                    <span>${escapeHtml(message.subject || 'No Subject')}</span>
                 </div>
                 <div class="detail-row">
-                    <strong>Date:</strong> ${formatDate(message.createdAt || message.date)}
+                    <strong>Date:</strong> 
+                    <span>${formatDate(message.createdAt || message.date)}</span>
                 </div>
                 <div class="detail-row">
                     <strong>Message:</strong>
-                    <div class="message-content">${escapeHtml(message.message).replace(/\n/g, '<br>')}</div>
+                    <div class="message-content">${escapeHtml(message.message || 'No message content').replace(/\n/g, '<br>')}</div>
                 </div>
             </div>
         `;
@@ -1025,11 +1059,9 @@ window.viewMessage = async function(id) {
         window.currentMessageId = id;
         window.currentMessageEmail = message.email;
         
-        await updateUnreadCount();
-        
     } catch (error) {
-        console.error('Error loading message:', error);
-        showAlert('Error loading message', 'error');
+        console.error('❌ Error loading message:', error);
+        showAlert('Error loading message: ' + error.message, 'error');
     }
 };
 
