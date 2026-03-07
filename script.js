@@ -59,23 +59,66 @@ function updateProfile(profile) {
         }
     });
 
-    // ========== SOCIAL LINKS UPDATE - FIXED ==========
+    // ========== SOCIAL LINKS UPDATE - DIRECT APPROACH ==========
     if (profile.socialLinks) {
-        document.querySelectorAll('[data-social]').forEach(el => {
-            const platform = el.getAttribute('data-social');
-            const url = profile.socialLinks[platform];
-            
-            if (url && url.trim() !== '') {
-                el.href = url;
-                el.style.display = 'flex';
-                el.setAttribute('target', '_blank');
-                el.setAttribute('rel', 'noopener noreferrer');
-                console.log(`✅ Updated ${platform}:`, url);
-            } else {
-                el.style.display = 'none';
-                console.log(`❌ Hidden ${platform} - no URL`);
-            }
-        });
+        // Hero section social links
+        const heroSocial = document.getElementById('hero-social');
+        if (heroSocial) {
+            const socialIcons = heroSocial.querySelectorAll('.social-icon');
+            socialIcons.forEach(icon => {
+                const platform = icon.getAttribute('data-social');
+                const url = profile.socialLinks[platform];
+                
+                if (url && url.trim() !== '') {
+                    icon.href = url;
+                    icon.style.display = 'flex';
+                    icon.setAttribute('target', '_blank');
+                    icon.setAttribute('rel', 'noopener noreferrer');
+                    console.log(`✅ Updated ${platform}:`, url);
+                } else {
+                    icon.style.display = 'none';
+                    console.log(`❌ Hidden ${platform} - no URL`);
+                }
+            });
+        }
+
+        // Contact section social links
+        const contactSocial = document.querySelector('.contact-social .social-links');
+        if (contactSocial) {
+            const socialLinks = contactSocial.querySelectorAll('.social-link');
+            socialLinks.forEach(link => {
+                const platform = link.getAttribute('data-social');
+                const url = profile.socialLinks[platform];
+                
+                if (url && url.trim() !== '') {
+                    link.href = url;
+                    link.style.display = 'flex';
+                    link.setAttribute('target', '_blank');
+                    link.setAttribute('rel', 'noopener noreferrer');
+                } else {
+                    link.style.display = 'none';
+                }
+            });
+        }
+
+        // Footer social links
+        const footerSocial = document.querySelector('.footer-social .social-icons');
+        if (footerSocial) {
+            const footerIcons = footerSocial.querySelectorAll('a');
+            footerIcons.forEach(link => {
+                const platform = link.getAttribute('data-social');
+                const url = profile.socialLinks[platform];
+                
+                if (url && url.trim() !== '') {
+                    link.href = url;
+                    link.style.display = 'flex';
+                    link.setAttribute('target', '_blank');
+                    link.setAttribute('rel', 'noopener noreferrer');
+                } else {
+                    link.style.display = 'none';
+                }
+            });
+        }
     }
 
     // Update stats
