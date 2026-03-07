@@ -23,22 +23,33 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// CORS MIDDLEWARE - Allow All Origins
 // ============================================
-app.use(cors({
-    origin: '*',
+// CORS MIDDLEWARE - FIXED FOR NETLIFY & RENDER
+// ============================================
+const corsOptions = {
+    origin: [
+        'https://dhirajdhakal.netlify.app',           // तपाईंको Netlify site
+        'https://portfolio-xqwu.onrender.com',        // तपाईंको Render backend (आफैलाई पनि allow)
+        'http://localhost:3000',                       // Local React
+        'http://localhost:3001',                       // Local backend
+        'http://127.0.0.1:5500',                       // Live Server (VS Code)
+        'http://localhost:5500'                         // Live Server
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true
-}));
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+
+// CORS middleware
+app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options('*', cors());
+app.options('*', cors(corsOptions));
 
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
 // ============================================
 // UPLOADS FOLDER SETUP
 // ============================================
