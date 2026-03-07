@@ -159,6 +159,27 @@ navLinks.forEach(link => {
     });
 });
 
+// ========== LOAD SETTINGS FUNCTION - ADD THIS ==========
+async function loadSettings() {
+    try {
+        const response = await fetch(`${API_URL}/settings`);
+        const settings = await response.json();
+
+        document.getElementById('siteTitle').value = settings.siteTitle || '';
+        document.getElementById('siteDescription').value = settings.siteDescription || '';
+        document.getElementById('adminEmail').value = settings.adminEmail || '';
+        
+        const maintenanceCheck = document.getElementById('maintenanceMode');
+        if (maintenanceCheck) maintenanceCheck.checked = settings.maintenanceMode || false;
+        
+        document.getElementById('copyrightText').value = settings.copyrightText || 'All rights reserved';
+        document.getElementById('siteLanguage').value = settings.siteLanguage || 'en';
+        
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        alert('Error loading settings');
+    }
+}
 
 // ========== PROFILE LOAD FUNCTION ==========
 async function loadProfile() {
@@ -187,7 +208,6 @@ async function loadProfile() {
         alert('Error loading profile');
     }
 }
-
 
 // ========== DASHBOARD ==========
 async function loadDashboard() {
@@ -234,20 +254,18 @@ async function loadDashboard() {
     }
 }
 
-// ========== PROFILE FORM SUBMIT - FIXED ==========
+// ========== PROFILE FORM SUBMIT ==========
 document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const formData = new FormData();
     
-    // Add all fields
     const fields = ['name', 'title', 'bio', 'email', 'phone', 'location', 'country', 'experience', 'initials'];
     fields.forEach(field => {
         const value = document.getElementById(`profile${field.charAt(0).toUpperCase() + field.slice(1)}`)?.value;
         if (value) formData.append(field, value);
     });
 
-    // Add images
     const profileImg = document.getElementById('profileImage')?.files[0];
     if (profileImg) formData.append('profileImage', profileImg);
     
@@ -269,7 +287,6 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
         
         if (data.success) {
             alert('Profile updated successfully!');
-            // Trigger refresh on frontend
             localStorage.setItem('adminUpdate', Date.now());
         } else {
             alert('Error: ' + (data.message || 'Unknown error'));
@@ -282,6 +299,7 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
         submitBtn.disabled = false;
     }
 });
+
 // ========== PROJECTS MANAGEMENT ==========
 async function loadProjects() {
     const tbody = document.getElementById('projectsList');
@@ -610,7 +628,7 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
     }
 });
 
-/// ========== SETTINGS FORM SUBMIT - FIXED ==========
+// ========== SETTINGS FORM SUBMIT ==========
 document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -652,6 +670,7 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
         submitBtn.disabled = false;
     }
 });
+
 // ========== UPLOADS ==========
 async function loadUploads() {
     const container = document.getElementById('uploadsList');
