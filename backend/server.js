@@ -389,74 +389,45 @@ app.put('/api/profile', authenticateToken, upload.fields([
             }
         });
 
-        // ===== SOCIAL LINKS - CRITICAL FIX =====
-        if (req.body.socialLinks) {
-            try {
-                console.log('\n📤 SOCIAL LINKS PROCESSING:');
-                
-                // Get socialLinks - यो object नै हुनुपर्छ
-                let socialLinks = req.body.socialLinks;
-                console.log('1. Raw socialLinks type:', typeof socialLinks);
-                console.log('2. Raw socialLinks value:', socialLinks);
-                
-                // If it's a string, parse it
-                if (typeof socialLinks === 'string') {
-                    console.log('3. Parsing string to object...');
-                    socialLinks = JSON.parse(socialLinks);
-                }
-                
-                console.log('4. Parsed socialLinks:', socialLinks);
-                
-                // Initialize if not exists
-                if (!profile.socialLinks) {
-                    profile.socialLinks = {};
-                }
-                
-                // IMPORTANT: Instagram value check
-                console.log('5. Instagram value received:', socialLinks.instagram);
-                
-                // Update each social link DIRECTLY
-                if (socialLinks.github !== undefined) {
-                    profile.socialLinks.github = socialLinks.github || '';
-                    console.log('6a. Set github:', profile.socialLinks.github);
-                }
-                
-                if (socialLinks.linkedin !== undefined) {
-                    profile.socialLinks.linkedin = socialLinks.linkedin || '';
-                    console.log('6b. Set linkedin:', profile.socialLinks.linkedin);
-                }
-                
-                if (socialLinks.twitter !== undefined) {
-                    profile.socialLinks.twitter = socialLinks.twitter || '';
-                    console.log('6c. Set twitter:', profile.socialLinks.twitter);
-                }
-                
-                if (socialLinks.instagram !== undefined) {
-                    profile.socialLinks.instagram = socialLinks.instagram || '';
-                    console.log('6d. 🔴 SET INSTAGRAM TO:', profile.socialLinks.instagram);
-                }
-                
-                if (socialLinks.facebook !== undefined) {
-                    profile.socialLinks.facebook = socialLinks.facebook || '';
-                    console.log('6e. Set facebook:', profile.socialLinks.facebook);
-                }
-                
-                if (socialLinks.youtube !== undefined) {
-                    profile.socialLinks.youtube = socialLinks.youtube || '';
-                    console.log('6f. Set youtube:', profile.socialLinks.youtube);
-                }
-                
-                console.log('7. Final socialLinks object:', profile.socialLinks);
-                
-                // Mark as modified
-                profile.markModified('socialLinks');
-                
-            } catch (e) {
-                console.error('❌ SOCIAL LINKS ERROR:', e);
-            }
-        } else {
-            console.log('⚠️ No socialLinks in request body');
+       // ===== SOCIAL LINKS - ULTIMATE FIX =====
+if (req.body.socialLinks) {
+    try {
+        console.log('\n📤 SOCIAL LINKS PROCESSING:');
+        
+        // Get socialLinks - यो object नै हुनुपर्छ
+        let socialLinks = req.body.socialLinks;
+        console.log('Raw socialLinks:', socialLinks);
+        
+        // If it's a string, parse it
+        if (typeof socialLinks === 'string') {
+            socialLinks = JSON.parse(socialLinks);
         }
+        
+        // Make sure profile.socialLinks exists
+        if (!profile.socialLinks) {
+            profile.socialLinks = {};
+        }
+        
+        // CRITICAL: Instagram value check
+        console.log('Instagram received:', socialLinks.instagram);
+        
+        // Update EACH social link individually
+        profile.socialLinks.github = socialLinks.github || '';
+        profile.socialLinks.linkedin = socialLinks.linkedin || '';
+        profile.socialLinks.twitter = socialLinks.twitter || '';
+        profile.socialLinks.instagram = socialLinks.instagram || ''; // ← यो लाइन सबैभन्दा महत्त्वपूर्ण
+        profile.socialLinks.facebook = socialLinks.facebook || '';
+        profile.socialLinks.youtube = socialLinks.youtube || '';
+        
+        console.log('Final socialLinks in profile:', profile.socialLinks);
+        
+        // Mark as modified
+        profile.markModified('socialLinks');
+        
+    } catch (e) {
+        console.error('❌ SOCIAL LINKS ERROR:', e);
+    }
+}
 
         // Update images
         if (req.files) {
