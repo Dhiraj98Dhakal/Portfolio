@@ -479,11 +479,8 @@ app.put('/api/profile', authenticateToken, upload.fields([
         console.log('='.repeat(60) + '\n');
         
         // Return the updated profile
-        res.json({ 
-            success: true, 
-            message: 'Profile updated successfully', 
-            profile: savedProfile 
-        });
+      // Return the updated profile
+res.json(savedProfile);
         
     } catch (error) {
         console.error('❌ PROFILE UPDATE ERROR:', error);
