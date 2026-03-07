@@ -1,18 +1,14 @@
 /* ============================================
-   style.css - Cyberpunk Theme (Improved)
-   Modern, Neon, Glitch Effects, Dark Theme
+   style.css - Complete Cyberpunk Theme
    ============================================ */
 
-/* ============================================
-   CSS VARIABLES - CYBERPUNK COLOR PALETTE
-   ============================================ */
+/* ========== CSS VARIABLES ========== */
 :root {
-    /* Cyberpunk Neon Colors */
+    /* Cyberpunk Colors */
     --neon-blue: #00f3ff;
     --neon-pink: #ff00c8;
     --neon-purple: #b300ff;
     --neon-green: #00ff9d;
-    --neon-yellow: #fff500;
     --neon-red: #ff0055;
     
     /* Primary Colors */
@@ -61,11 +57,16 @@
     --radius-lg: 12px;
     --radius-xl: 20px;
     --radius-full: 50%;
+    
+    /* Spacing */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
 }
 
-/* ============================================
-   BASE STYLES
-   ============================================ */
+/* ========== RESET & BASE ========== */
 * {
     margin: 0;
     padding: 0;
@@ -86,7 +87,7 @@ body {
     position: relative;
 }
 
-/* Cyberpunk Grid Background */
+/* ========== BACKGROUND EFFECTS ========== */
 body::before {
     content: '';
     position: fixed;
@@ -108,43 +109,7 @@ body::before {
     100% { transform: translate(40px, 40px); }
 }
 
-/* Scanline Effect */
-body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        transparent 50%,
-        rgba(0, 243, 255, 0.02) 50%
-    );
-    background-size: 100% 4px;
-    pointer-events: none;
-    z-index: -1;
-    animation: scanline 10s linear infinite;
-}
-
-@keyframes scanline {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(100%); }
-}
-
-/* ============================================
-   CONTAINER
-   ============================================ */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-    position: relative;
-    z-index: 2;
-}
-
-/* ============================================
-   TYPOGRAPHY
-   ============================================ */
+/* ========== TYPOGRAPHY ========== */
 h1, h2, h3, h4, h5, h6 {
     font-family: 'Orbitron', sans-serif;
     font-weight: 700;
@@ -178,6 +143,25 @@ h2 span {
     text-shadow: var(--shadow-neon-pink);
 }
 
+p {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+/* ========== CONTAINER ========== */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.section {
+    padding: 100px 0;
+}
+
 .section-header {
     text-align: center;
     margin-bottom: 60px;
@@ -204,9 +188,7 @@ h2 span {
     text-shadow: var(--shadow-neon);
 }
 
-/* ============================================
-   NAVBAR
-   ============================================ */
+/* ========== NAVBAR ========== */
 .navbar {
     position: fixed;
     top: 0;
@@ -264,7 +246,7 @@ h2 span {
     animation: blink 1s infinite;
 }
 
-/* Navigation Menu */
+/* Navigation */
 .nav-menu {
     display: flex;
     align-items: center;
@@ -345,38 +327,7 @@ h2 span {
     transform: rotate(-45deg) translate(7px, -7px);
 }
 
-@media (max-width: 768px) {
-    .hamburger {
-        display: flex;
-    }
-
-    .nav-menu {
-        position: fixed;
-        top: 80px;
-        left: -100%;
-        width: 100%;
-        height: calc(100vh - 80px);
-        background: var(--bg-primary);
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 40px;
-        transition: left 0.3s ease;
-        border-top: 1px solid var(--neon-blue);
-    }
-
-    .nav-menu.active {
-        left: 0;
-    }
-
-    .nav-link {
-        font-size: 1.2rem;
-    }
-}
-
-/* ============================================
-   HERO SECTION
-   ============================================ */
+/* ========== HERO SECTION ========== */
 .hero {
     min-height: 100vh;
     display: flex;
@@ -411,10 +362,6 @@ h2 span {
     gap: 50px;
     align-items: center;
     z-index: 2;
-}
-
-.hero-content {
-    position: relative;
 }
 
 .hero-badge {
@@ -467,27 +414,11 @@ h2 span {
     color: var(--text-secondary);
     margin-bottom: 20px;
     font-family: 'Share Tech Mono', monospace;
-    border-right: 3px solid var(--neon-pink);
-    white-space: nowrap;
-    overflow: hidden;
-    animation: typing 4s steps(40) infinite, 
-               blink-caret 0.75s step-end infinite;
-}
-
-@keyframes typing {
-    0%, 100% { width: 0; }
-    50% { width: 100%; }
-}
-
-@keyframes blink-caret {
-    from, to { border-color: transparent; }
-    50% { border-color: var(--neon-pink); }
 }
 
 .hero-description {
     color: var(--text-secondary);
     margin-bottom: 30px;
-    line-height: 1.8;
     max-width: 500px;
 }
 
@@ -498,9 +429,7 @@ h2 span {
     flex-wrap: wrap;
 }
 
-/* ============================================
-   PROFILE PHOTO - IMPROVED
-   ============================================ */
+/* ========== PROFILE PHOTO ========== */
 .hero-image {
     position: relative;
     display: flex;
@@ -564,20 +493,7 @@ h2 span {
     50% { background-position: 100% 50%; }
 }
 
-.image-shape {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    border: 2px dashed var(--neon-pink);
-    border-radius: var(--radius-full);
-    animation: rotate 20s linear infinite;
-    pointer-events: none;
-    opacity: 0.5;
-}
-
-/* Floating Tech Icons */
+/* Floating Icons */
 .floating-icon {
     position: absolute;
     width: 50px;
@@ -624,76 +540,7 @@ h2 span {
     animation-delay: 1s;
 }
 
-@media (max-width: 1024px) {
-    .image-wrapper {
-        width: 300px;
-        height: 300px;
-    }
-    
-    .floating-icon {
-        width: 45px;
-        height: 45px;
-        font-size: 1.3rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .hero .container {
-        grid-template-columns: 1fr;
-        text-align: center;
-    }
-    
-    .hero-content {
-        order: 2;
-    }
-    
-    .hero-image {
-        order: 1;
-        margin-bottom: 30px;
-    }
-    
-    .image-wrapper {
-        width: 280px;
-        height: 280px;
-        margin: 0 auto;
-    }
-    
-    .hero-description {
-        margin-left: auto;
-        margin-right: auto;
-    }
-    
-    .hero-buttons {
-        justify-content: center;
-    }
-    
-    .floating-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 1.2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .image-wrapper {
-        width: 240px;
-        height: 240px;
-    }
-    
-    .floating-icon {
-        width: 35px;
-        height: 35px;
-        font-size: 1rem;
-    }
-    
-    .icon-3 {
-        display: none;
-    }
-}
-
-/* ============================================
-   SOCIAL ICONS
-   ============================================ */
+/* ========== SOCIAL ICONS ========== */
 .hero-social {
     display: flex;
     gap: 15px;
@@ -743,9 +590,7 @@ h2 span {
     background: var(--neon-pink);
 }
 
-/* ============================================
-   BUTTONS
-   ============================================ */
+/* ========== BUTTONS ========== */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -799,22 +644,20 @@ h2 span {
     transform: translateY(-3px);
 }
 
-.btn-secondary {
+.btn-outline {
     background: transparent;
     color: var(--neon-pink);
     border: 2px solid var(--neon-pink);
     box-shadow: var(--shadow-neon-pink);
 }
 
-.btn-secondary:hover {
+.btn-outline:hover {
     background: var(--neon-pink);
     color: var(--bg-primary);
     transform: translateY(-3px);
 }
 
-/* ============================================
-   SCROLL DOWN
-   ============================================ */
+/* ========== SCROLL DOWN ========== */
 .scroll-down {
     position: absolute;
     bottom: 30px;
@@ -853,11 +696,8 @@ h2 span {
     100% { opacity: 0; transform: rotate(-45deg) translate(10px, 10px); }
 }
 
-/* ============================================
-   ABOUT SECTION
-   ============================================ */
+/* ========== ABOUT SECTION ========== */
 .about {
-    padding: 100px 0;
     background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
 }
 
@@ -880,12 +720,10 @@ h2 span {
     border-radius: var(--radius-lg);
     border: 3px solid var(--neon-blue);
     box-shadow: var(--shadow-neon);
-    filter: grayscale(30%) contrast(110%);
     transition: all var(--transition-base);
 }
 
 .about-image:hover img {
-    filter: grayscale(0%) contrast(120%);
     transform: scale(1.02);
     border-color: var(--neon-pink);
     box-shadow: var(--shadow-neon-pink);
@@ -921,22 +759,10 @@ h2 span {
     text-shadow: var(--shadow-neon-pink);
 }
 
-.experience-badge .text {
-    font-size: 0.7rem;
-    color: var(--text-primary);
-    text-align: center;
-    font-family: 'Share Tech Mono', monospace;
-}
-
 .about-text {
     color: var(--text-secondary);
     margin-bottom: 30px;
-    line-height: 1.8;
-}
-
-.highlight {
-    color: var(--neon-blue);
-    text-shadow: var(--shadow-neon);
+    font-size: 1.1rem;
 }
 
 .about-info {
@@ -1011,11 +837,8 @@ h2 span {
     font-family: 'Share Tech Mono', monospace;
 }
 
-/* ============================================
-   SKILLS SECTION
-   ============================================ */
+/* ========== SKILLS SECTION ========== */
 .skills {
-    padding: 100px 0;
     background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
 }
 
@@ -1030,27 +853,6 @@ h2 span {
     padding: 25px;
     border: 1px solid rgba(0, 243, 255, 0.2);
     transition: all var(--transition-base);
-    position: relative;
-    overflow: hidden;
-}
-
-.skill-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, 
-        transparent, 
-        rgba(0, 243, 255, 0.1), 
-        transparent);
-    transform: translateX(-100%);
-    transition: transform 0.5s;
-}
-
-.skill-card:hover::before {
-    transform: translateX(100%);
 }
 
 .skill-card:hover {
@@ -1090,27 +892,6 @@ h2 span {
     background: var(--gradient-primary);
     width: 0;
     transition: width 1.5s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.skill-progress-bar::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, 
-        transparent, 
-        rgba(255, 255, 255, 0.3), 
-        transparent);
-    animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
 }
 
 .skill-percentage {
@@ -1121,11 +902,8 @@ h2 span {
     font-size: 0.9rem;
 }
 
-/* ============================================
-   PROJECTS SECTION
-   ============================================ */
+/* ========== PROJECTS SECTION ========== */
 .projects {
-    padding: 100px 0;
     background: var(--bg-primary);
 }
 
@@ -1192,30 +970,10 @@ h2 span {
     height: 100%;
     object-fit: cover;
     transition: transform var(--transition-base);
-    filter: grayscale(30%);
 }
 
 .project-card:hover .project-image img {
     transform: scale(1.1);
-    filter: grayscale(0%);
-}
-
-.project-image::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, 
-        rgba(0, 243, 255, 0.2), 
-        rgba(255, 0, 200, 0.2));
-    opacity: 0;
-    transition: opacity var(--transition-base);
-}
-
-.project-card:hover .project-image::after {
-    opacity: 1;
 }
 
 .featured-badge {
@@ -1239,13 +997,11 @@ h2 span {
 .project-title {
     color: var(--neon-blue);
     margin-bottom: 10px;
-    font-size: 1.2rem;
 }
 
 .project-description {
     color: var(--text-secondary);
     margin-bottom: 15px;
-    line-height: 1.6;
     font-size: 0.95rem;
 }
 
@@ -1291,11 +1047,8 @@ h2 span {
     box-shadow: var(--shadow-neon);
 }
 
-/* ============================================
-   CONTACT SECTION
-   ============================================ */
+/* ========== CONTACT SECTION ========== */
 .contact {
-    padding: 100px 0;
     background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
 }
 
@@ -1305,10 +1058,22 @@ h2 span {
     gap: 50px;
 }
 
+.contact-left .contact-title {
+    color: var(--neon-blue);
+    font-size: 2rem;
+    margin-bottom: 20px;
+}
+
+.contact-text {
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+}
+
 .contact-info {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    margin-bottom: 30px;
 }
 
 .contact-item {
@@ -1328,8 +1093,8 @@ h2 span {
 }
 
 .contact-icon {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     background: transparent;
     border: 2px solid var(--neon-blue);
     display: flex;
@@ -1356,8 +1121,6 @@ h2 span {
 .contact-details span:last-child {
     color: var(--text-primary);
     text-decoration: none;
-    font-size: 1rem;
-    transition: color var(--transition-base);
 }
 
 .contact-details a:hover {
@@ -1399,9 +1162,7 @@ h2 span {
     resize: vertical;
 }
 
-/* ============================================
-   FOOTER
-   ============================================ */
+/* ========== FOOTER ========== */
 .footer {
     background: var(--bg-primary);
     border-top: 1px solid rgba(0, 243, 255, 0.2);
@@ -1521,9 +1282,7 @@ h2 span {
     box-shadow: var(--shadow-neon);
 }
 
-/* ============================================
-   BACK TO TOP
-   ============================================ */
+/* ========== BACK TO TOP ========== */
 .back-to-top {
     position: fixed;
     bottom: 30px;
@@ -1557,9 +1316,37 @@ h2 span {
     transform: translateY(-5px);
 }
 
-/* ============================================
-   NOTIFICATION
-   ============================================ */
+/* ========== LOADING ========== */
+.loading {
+    text-align: center;
+    padding: 50px;
+    color: var(--neon-blue);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-left: 10px;
+    border: 2px solid var(--neon-pink);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ========== NOTIFICATION ========== */
 .notification {
     position: fixed;
     top: 20px;
@@ -1601,50 +1388,52 @@ h2 span {
     }
 }
 
-/* ============================================
-   LOADING
-   ============================================ */
-.loading {
-    text-align: center;
-    padding: 50px;
-    color: var(--neon-blue);
-    font-family: 'Share Tech Mono', monospace;
-}
-
-.loading::after {
-    content: '';
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    margin-left: 10px;
-    border: 2px solid var(--neon-pink);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
+/* ========== RESPONSIVE ========== */
 @media (max-width: 1024px) {
-    .hero .container {
-        gap: 30px;
+    .image-wrapper {
+        width: 300px;
+        height: 300px;
     }
     
-    .about-content {
-        gap: 30px;
-    }
-    
-    .contact-container {
-        gap: 30px;
+    .floating-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 1.3rem;
     }
 }
 
 @media (max-width: 768px) {
+    .hero .container {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .hero-content {
+        order: 2;
+    }
+    
+    .hero-image {
+        order: 1;
+        margin-bottom: 30px;
+    }
+    
+    .image-wrapper {
+        width: 280px;
+        height: 280px;
+    }
+    
+    .hero-description {
+        margin: 0 auto 30px;
+    }
+    
+    .hero-buttons {
+        justify-content: center;
+    }
+    
+    .hero-social {
+        justify-content: center;
+    }
+    
     .about-content {
         grid-template-columns: 1fr;
         text-align: center;
@@ -1679,9 +1468,51 @@ h2 span {
         flex-direction: column;
         text-align: center;
     }
+    
+    .hamburger {
+        display: flex;
+    }
+    
+    .nav-menu {
+        position: fixed;
+        top: 80px;
+        left: -100%;
+        width: 100%;
+        height: calc(100vh - 80px);
+        background: var(--bg-primary);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+        transition: left 0.3s ease;
+        border-top: 1px solid var(--neon-blue);
+    }
+    
+    .nav-menu.active {
+        left: 0;
+    }
+    
+    .nav-link {
+        font-size: 1.2rem;
+    }
 }
 
 @media (max-width: 480px) {
+    .image-wrapper {
+        width: 240px;
+        height: 240px;
+    }
+    
+    .floating-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    
+    .icon-3 {
+        display: none;
+    }
+    
     .hero-buttons {
         flex-direction: column;
     }
@@ -1706,30 +1537,13 @@ h2 span {
     .contact-icon {
         margin: 0 auto;
     }
+    
+    .contact-details {
+        text-align: center;
+    }
 }
 
-/* ============================================
-   UTILITIES
-   ============================================ */
-.text-center {
-    text-align: center;
-}
-
-.mt-1 { margin-top: 0.5rem; }
-.mt-2 { margin-top: 1rem; }
-.mt-3 { margin-top: 1.5rem; }
-.mt-4 { margin-top: 2rem; }
-.mt-5 { margin-top: 3rem; }
-
-.mb-1 { margin-bottom: 0.5rem; }
-.mb-2 { margin-bottom: 1rem; }
-.mb-3 { margin-bottom: 1.5rem; }
-.mb-4 { margin-bottom: 2rem; }
-.mb-5 { margin-bottom: 3rem; }
-
-/* ============================================
-   SCROLLBAR
-   ============================================ */
+/* ========== SCROLLBAR ========== */
 ::-webkit-scrollbar {
     width: 10px;
 }
@@ -1747,9 +1561,7 @@ h2 span {
     background: var(--gradient-secondary);
 }
 
-/* ============================================
-   SELECTION
-   ============================================ */
+/* ========== SELECTION ========== */
 ::selection {
     background: var(--neon-pink);
     color: var(--bg-primary);
@@ -1758,12 +1570,4 @@ h2 span {
 ::-moz-selection {
     background: var(--neon-pink);
     color: var(--bg-primary);
-}
-
-/* ============================================
-   ANIMATIONS
-   ============================================ */
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
 }

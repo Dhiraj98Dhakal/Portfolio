@@ -1,16 +1,21 @@
-// backend/config/db.js
 const mongoose = require('mongoose');
 require('dotenv').config();
 
 const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI);
-        console.log('\n' + '='.repeat(50));
-        console.log('✅ MongoDB Connected Successfully');
-        console.log('='.repeat(50));
-        console.log('📍 Database:', conn.connection.name);
-        console.log('📍 Host:', conn.connection.host);
-        console.log('='.repeat(50) + '\n');
+        const conn = await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+        
+        console.log('\n' + '='.repeat(60));
+        console.log('✅ MONGODB CONNECTED SUCCESSFULLY');
+        console.log('='.repeat(60));
+        console.log(`📍 Database: ${conn.connection.name}`);
+        console.log(`📍 Host: ${conn.connection.host}`);
+        console.log('='.repeat(60) + '\n');
+        
+        return conn;
     } catch (error) {
         console.error('\n❌ MongoDB Connection Error:', error.message);
         console.log('\n💡 Tips:');

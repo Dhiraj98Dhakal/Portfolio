@@ -1,18 +1,17 @@
-// admin.js - Complete Admin Panel with Anime Theme Support
 // ============================================
-// CONFIGURATION
+// admin.js - Complete Admin Panel Logic
 // ============================================
+
+// ========== CONFIGURATION ==========
 const API_URL = 'https://portfolio-xqwu.onrender.com/api';
 const BASE_URL = 'https://portfolio-xqwu.onrender.com';
 const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 
-console.log('✨ Admin JS Loaded with API_URL:', API_URL);
-console.log('✨ BASE_URL:', BASE_URL);
+console.log('✅ Admin JS Loaded');
+console.log('📍 API URL:', API_URL);
+console.log('📍 BASE URL:', BASE_URL);
 
-// ============================================
-// SECURITY CHECK FUNCTIONS
-// ============================================
-
+// ========== SECURITY CHECK ==========
 function checkAuth() {
     const token = localStorage.getItem('adminToken');
     const loginTime = localStorage.getItem('adminLoginTime');
@@ -22,14 +21,26 @@ function checkAuth() {
         hasLoginTime: !!loginTime
     });
     
-    if (!token || !loginTime) return false;
+    if (!token || !loginTime) {
+        console.log('❌ No token found');
+        return false;
+    }
     
     const loginTimestamp = parseInt(loginTime);
-    if (isNaN(loginTimestamp) || loginTimestamp <= 0) return false;
+    if (isNaN(loginTimestamp) || loginTimestamp <= 0) {
+        console.log('❌ Invalid login time');
+        return false;
+    }
     
     const now = Date.now();
-    if (now - loginTimestamp > SESSION_TIMEOUT) return false;
+    const timeDiff = now - loginTimestamp;
     
+    if (timeDiff > SESSION_TIMEOUT) {
+        console.log('❌ Session expired');
+        return false;
+    }
+    
+    console.log('✅ Authentication valid');
     return true;
 }
 
@@ -39,28 +50,38 @@ function redirectToLogin(error = 'unauthorized') {
     window.location.replace(`index.html?error=${error}`);
 }
 
-// Initial Security Check
+// Initial security check
 (function() {
     console.log('🚀 Admin Dashboard Loading...');
     
-    if (window.location.pathname.includes('dashboard.html')) {
-        if (!checkAuth()) {
-            redirectToLogin('session_expired');
-        }
+    const token = localStorage.getItem('adminToken');
+    const loginTime = localStorage.getItem('adminLoginTime');
+    
+    if (!token || !loginTime) {
+        console.log('❌ No token found - redirecting');
+        redirectToLogin('unauthorized');
+        return;
+    }
+    
+    if (!checkAuth()) {
+        redirectToLogin('session_expired');
+    } else {
+        console.log('✅ Authentication passed');
     }
 })();
 
-// ============================================
-// API HELPER
-// ============================================
-
+// ========== API HELPER ==========
 async function fetchWithAuth(url, options = {}) {
     const token = localStorage.getItem('adminToken');
+    
+    if (!checkAuth()) {
+        redirectToLogin('session_expired');
+        throw new Error('Not authenticated');
+    }
     
     const defaultOptions = {
         headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
             ...options.headers
         }
     };
@@ -73,7 +94,7 @@ async function fetchWithAuth(url, options = {}) {
         const response = await fetch(url, { ...defaultOptions, ...options });
         
         if (response.status === 401) {
-            console.log('❌ Session invalid');
+            console.log('❌ API returned 401');
             redirectToLogin('session_expired');
             throw new Error('Session expired');
         }
@@ -85,10 +106,7 @@ async function fetchWithAuth(url, options = {}) {
     }
 }
 
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-
+// ========== UTILITY FUNCTIONS ==========
 function showAlert(message, type = 'success') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert ${type}`;
@@ -100,27 +118,6 @@ function showAlert(message, type = 'success') {
         <span>${message}</span>
     `;
     
-    alertDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 25px;
-        background: ${type === 'success' ? 'linear-gradient(135deg, #ff6b9d, #c06bff)' :
-                      type === 'error' ? 'linear-gradient(135deg, #ff4d4d, #ff0066)' :
-                      type === 'warning' ? 'linear-gradient(135deg, #ffdb6b, #ff9f6b)' :
-                      'linear-gradient(135deg, #6bc4ff, #c06bff)'};
-        color: white;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        animation: slideIn 0.3s ease;
-        font-family: 'Poppins', sans-serif;
-        border: 2px solid white;
-    `;
-    
     document.body.appendChild(alertDiv);
     
     setTimeout(() => {
@@ -129,7 +126,6 @@ function showAlert(message, type = 'success') {
 }
 
 function formatDate(dateString) {
-    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
         year: 'numeric',
@@ -152,17 +148,7 @@ function setValue(id, value) {
     if (el) el.value = value || '';
 }
 
-function showImagePreview(id, src) {
-    const preview = document.getElementById(id);
-    if (preview) {
-        preview.src = src;
-        preview.style.display = 'block';
-    }
-}
-
-// ============================================
-// SIDEBAR TOGGLE
-// ============================================
+// ========== SIDEBAR TOGGLE ==========
 const sidebar = document.getElementById('sidebar');
 const toggleBtn = document.getElementById('toggleSidebar');
 const mainContent = document.getElementById('mainContent');
@@ -174,17 +160,12 @@ if (toggleBtn) {
     });
 }
 
-// ============================================
-// SECTION NAVIGATION
-// ============================================
+// ========== SECTION NAVIGATION ==========
 const navLinks = document.querySelectorAll('.nav-link');
 const sections = document.querySelectorAll('.section');
-const pageTitle = document.getElementById('pageTitle');
-const pageDescription = document.getElementById('pageDescription');
 
 window.showSection = function(sectionId) {
     sections.forEach(s => s.style.display = 'none');
-    
     const selectedSection = document.getElementById(`${sectionId}-section`);
     if (selectedSection) selectedSection.style.display = 'block';
     
@@ -193,21 +174,20 @@ window.showSection = function(sectionId) {
     if (activeLink) activeLink.classList.add('active');
     
     const titles = {
-        'dashboard': { title: '🌸 Dashboard', desc: 'Welcome back, Admin-chan!' },
-        'profile': { title: '👤 Profile', desc: 'Manage your kawaii profile' },
-        'projects': { title: '📁 Projects', desc: 'Your awesome projects' },
-        'add-project': { title: '✨ New Project', desc: 'Create something amazing' },
-        'skills': { title: '⚡ Skills', desc: 'Your superpowers' },
-        'social': { title: '💖 Social Links', desc: 'Connect with the world' },
-        'testimonials': { title: '⭐ Testimonials', desc: 'What people say about you' },
-        'settings': { title: '⚙️ Settings', desc: 'Customize your site' },
-        'uploads': { title: '🖼️ Gallery', desc: 'Your uploaded images' },
-        'messages': { title: '📧 Messages', desc: 'Fan mail from your admirers' },
-        'backup': { title: '💾 Backup', desc: 'Save your data safely' }
+        'dashboard': { title: 'Dashboard', desc: 'Overview of your portfolio' },
+        'profile': { title: 'Profile Settings', desc: 'Manage your personal information' },
+        'projects': { title: 'Projects', desc: 'Manage your projects' },
+        'add-project': { title: 'Add Project', desc: 'Create a new project' },
+        'skills': { title: 'Skills', desc: 'Manage your skills' },
+        'social': { title: 'Social Links', desc: 'Update your social media links' },
+        'settings': { title: 'Site Settings', desc: 'Configure your website' },
+        'uploads': { title: 'File Manager', desc: 'Manage uploaded files' },
+        'messages': { title: 'Messages', desc: 'View contact messages' },
+        'backup': { title: 'Backup & Restore', desc: 'Backup your data' }
     };
     
-    if (pageTitle) pageTitle.textContent = titles[sectionId]?.title || 'Dashboard';
-    if (pageDescription) pageDescription.textContent = titles[sectionId]?.desc || '';
+    document.getElementById('pageTitle').textContent = titles[sectionId]?.title || 'Dashboard';
+    document.getElementById('pageDescription').textContent = titles[sectionId]?.desc || '';
     
     // Load section data
     switch(sectionId) {
@@ -216,7 +196,6 @@ window.showSection = function(sectionId) {
         case 'projects': loadProjects(); break;
         case 'skills': loadSkills(); break;
         case 'social': loadSocialLinks(); break;
-        case 'testimonials': loadTestimonials(); break;
         case 'settings': loadSettings(); break;
         case 'uploads': loadUploads(); break;
         case 'messages': loadMessages(); break;
@@ -231,33 +210,31 @@ navLinks.forEach(link => {
     });
 });
 
-// ============================================
-// DASHBOARD
-// ============================================
-
+// ========== DASHBOARD ==========
 async function loadDashboard() {
     const statsContainer = document.getElementById('dashboard-stats');
     if (!statsContainer) return;
     
-    statsContainer.innerHTML = '<div class="loading">Loading kawaii data...</div>';
+    statsContainer.innerHTML = '<div class="loading">Loading stats...</div>';
     
     try {
-        const [projectsRes, skillsRes, messagesRes] = await Promise.all([
-            fetch(`${API_URL}/projects`).catch(() => ({ json: () => [] })),
-            fetch(`${API_URL}/skills`).catch(() => ({ json: () => [] })),
-            fetchWithAuth(`${API_URL}/messages`).catch(() => ({ json: () => [] }))
+        const [projects, skills, uploadsRes, messagesRes] = await Promise.all([
+            fetchWithAuth(`${API_URL}/projects`).then(r => r.json()).catch(() => []),
+            fetchWithAuth(`${API_URL}/skills`).then(r => r.json()).catch(() => []),
+            fetchWithAuth(`${API_URL}/uploads`).catch(() => ({ files: [] })),
+            fetchWithAuth(`${API_URL}/messages`).catch(() => [])
         ]);
         
-        const projects = await projectsRes.json().catch(() => []);
-        const skills = await skillsRes.json().catch(() => []);
-        const messages = await messagesRes.json().catch(() => []);
+        const uploads = uploadsRes.files ? uploadsRes : { files: [] };
+        const messages = Array.isArray(messagesRes) ? messagesRes : [];
         
         const featuredCount = projects.filter(p => p.featured).length;
-        const unreadCount = messages.filter(m => !m.read).length;
+        const techSet = new Set();
+        projects.forEach(p => p.technologies?.forEach(t => techSet.add(t)));
         
         statsContainer.innerHTML = `
             <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-folder-open"></i></div>
+                <div class="stat-icon"><i class="fas fa-project-diagram"></i></div>
                 <div class="stat-value">${projects.length}</div>
                 <div class="stat-label">Total Projects</div>
             </div>
@@ -272,35 +249,50 @@ async function loadDashboard() {
                 <div class="stat-label">Skills</div>
             </div>
             <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-images"></i></div>
+                <div class="stat-value">${uploads.files?.length || 0}</div>
+                <div class="stat-label">Uploads</div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-envelope"></i></div>
-                <div class="stat-value">${unreadCount}</div>
-                <div class="stat-label">Unread Messages</div>
+                <div class="stat-value">${messages.length}</div>
+                <div class="stat-label">Messages</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-tags"></i></div>
+                <div class="stat-value">${techSet.size}</div>
+                <div class="stat-label">Technologies</div>
             </div>
         `;
+        
     } catch (error) {
         console.error('Dashboard error:', error);
         statsContainer.innerHTML = '<div class="error">Error loading dashboard</div>';
     }
 }
 
-// ============================================
-// PROFILE MANAGEMENT
-// ============================================
-
+// ========== PROFILE MANAGEMENT ==========
 async function loadProfile() {
     try {
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
 
-        setValue('profileName', profile.name || '');
-        setValue('profileTitle', profile.title || '');
-        setValue('profileBio', profile.bio || '');
-        setValue('profileEmail', profile.email || '');
-        setValue('profilePhone', profile.phone || '');
-        setValue('profileLocation', profile.location || '');
+        setValue('profileName', profile.name);
+        setValue('profileTitle', profile.title);
+        setValue('profileBio', profile.bio);
+        setValue('profileAboutText', profile.aboutText);
+        setValue('profileEmail', profile.email);
+        setValue('profilePhone', profile.phone);
+        setValue('profileLocation', profile.location);
         setValue('profileCountry', profile.country || 'Nepal');
         setValue('profileExperience', profile.experience || '2+');
         setValue('profileInitials', profile.initials || 'D');
+        setValue('profileEducation', profile.education || 'BICTE (2022 - Present)');
+        setValue('profileWebsite', profile.website || '');
+        setValue('profileCvLink', profile.cvLink || '');
+        setValue('profileShortBio', profile.shortBio || '');
+        setValue('profileContactTitle', profile.contactTitle || '');
+        setValue('profileContactText', profile.contactText || '');
 
         if (profile.profileImage) {
             showImagePreview('profileImagePreview', `${BASE_URL}${profile.profileImage}`);
@@ -308,9 +300,18 @@ async function loadProfile() {
         if (profile.aboutImage) {
             showImagePreview('aboutImagePreview', `${BASE_URL}${profile.aboutImage}`);
         }
+        
     } catch (error) {
         console.error('Error loading profile:', error);
         showAlert('Error loading profile', 'error');
+    }
+}
+
+function showImagePreview(id, src) {
+    const preview = document.getElementById(id);
+    if (preview) {
+        preview.src = src;
+        preview.style.display = 'block';
     }
 }
 
@@ -318,10 +319,16 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
     e.preventDefault();
     
     const formData = new FormData();
-    const fields = ['name', 'title', 'bio', 'email', 'phone', 'location', 'country', 'experience', 'initials'];
+    
+    const fields = [
+        'name', 'title', 'bio', 'aboutText', 'email', 'phone', 
+        'location', 'country', 'experience', 'initials', 'education',
+        'website', 'cvLink', 'shortBio', 'contactTitle', 'contactText'
+    ];
     
     fields.forEach(field => {
-        const value = document.getElementById(`profile${field.charAt(0).toUpperCase() + field.slice(1)}`)?.value;
+        const elementId = `profile${field.charAt(0).toUpperCase() + field.slice(1)}`;
+        const value = document.getElementById(elementId)?.value;
         if (value) formData.append(field, value);
     });
 
@@ -331,11 +338,6 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
     const aboutImage = document.getElementById('aboutImage')?.files[0];
     if (aboutImage) formData.append('aboutImage', aboutImage);
 
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
-    submitBtn.disabled = true;
-
     try {
         const response = await fetchWithAuth(`${API_URL}/profile`, {
             method: 'PUT',
@@ -344,48 +346,32 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
 
         const data = await response.json();
         if (data.success) {
-            showAlert('Profile updated successfully! ✨');
+            showAlert('Profile updated successfully!');
             loadProfile();
         }
     } catch (error) {
-        showAlert('Error updating profile', 'error');
-    } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        showAlert('Error updating profile: ' + error.message, 'error');
     }
 });
 
-// Image preview handlers
-document.getElementById('profileImage')?.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const preview = document.getElementById('profileImagePreview');
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
+['profileImage', 'aboutImage'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const preview = document.getElementById(id + 'Preview');
+                if (preview) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
 });
 
-document.getElementById('aboutImage')?.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const preview = document.getElementById('aboutImagePreview');
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
-});
-
-// ============================================
-// PROJECTS MANAGEMENT
-// ============================================
-
+// ========== PROJECTS MANAGEMENT ==========
 async function loadProjects() {
     const tbody = document.getElementById('projectsList');
     if (!tbody) return;
@@ -396,7 +382,7 @@ async function loadProjects() {
         const response = await fetch(`${API_URL}/projects`);
         const projects = await response.json();
 
-        if (!projects || projects.length === 0) {
+        if (projects.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center">No projects found</td></tr>';
             return;
         }
@@ -405,14 +391,15 @@ async function loadProjects() {
             <tr>
                 <td>
                     <img src="${p.image ? `${BASE_URL}${p.image}` : 'https://via.placeholder.com/50'}" 
-                         style="width:50px;height:50px;object-fit:cover;border-radius:5px;">
+                         style="width:50px;height:50px;object-fit:cover;border-radius:5px;"
+                         onerror="this.src='https://via.placeholder.com/50'">
                 </td>
                 <td>${escapeHtml(p.title)}</td>
-                <td>${escapeHtml(p.description?.substring(0, 50))}${p.description?.length > 50 ? '...' : ''}</td>
-                <td>${p.technologies?.slice(0,2).join(', ') || ''}${p.technologies?.length > 2 ? '...' : ''}</td>
+                <td>${escapeHtml(p.description.substring(0, 50))}...</td>
+                <td>${p.technologies?.slice(0,2).join(', ') || ''}</td>
                 <td>
-                    <span class="badge" style="background: ${p.featured ? '#ff6b9d' : '#c06bff'}">
-                        ${p.featured ? '⭐ Featured' : '✨ Regular'}
+                    <span class="badge ${p.featured ? 'badge-success' : 'badge-warning'}">
+                        ${p.featured ? 'Featured' : 'Regular'}
                     </span>
                 </td>
                 <td class="action-btns">
@@ -425,6 +412,7 @@ async function loadProjects() {
                 </td>
             </tr>
         `).join('');
+        
     } catch (error) {
         console.error('Error loading projects:', error);
         tbody.innerHTML = '<tr><td colspan="6" class="text-center error">Error loading projects</td></tr>';
@@ -459,7 +447,7 @@ document.getElementById('projectForm')?.addEventListener('submit', async (e) => 
         const data = await response.json();
         
         if (data.success) {
-            showAlert('Project added successfully! ✨');
+            showAlert('Project added successfully!');
             e.target.reset();
             document.getElementById('projectImagePreview').style.display = 'none';
             showSection('projects');
@@ -514,6 +502,7 @@ window.editProject = async function(id) {
         }
 
         document.getElementById('editProjectModal').classList.add('active');
+        
     } catch (error) {
         console.error('Error loading project:', error);
         showAlert('Error loading project', 'error');
@@ -542,8 +531,9 @@ document.getElementById('editProjectForm')?.addEventListener('submit', async (e)
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('Project updated successfully! ✨');
+            showAlert('Project updated successfully!');
             closeModal('editProjectModal');
             loadProjects();
         }
@@ -553,7 +543,7 @@ document.getElementById('editProjectForm')?.addEventListener('submit', async (e)
 });
 
 window.deleteProject = async function(id) {
-    if (!confirm('Delete this project?')) return;
+    if (!confirm('Are you sure you want to delete this project?')) return;
 
     try {
         const response = await fetchWithAuth(`${API_URL}/projects/${id}`, {
@@ -561,8 +551,9 @@ window.deleteProject = async function(id) {
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('Project deleted successfully!', 'success');
+            showAlert('Project deleted successfully!');
             loadProjects();
         }
     } catch (error) {
@@ -570,10 +561,7 @@ window.deleteProject = async function(id) {
     }
 };
 
-// ============================================
-// SKILLS MANAGEMENT
-// ============================================
-
+// ========== SKILLS MANAGEMENT ==========
 async function loadSkills() {
     const tbody = document.getElementById('skillsList');
     if (!tbody) return;
@@ -584,7 +572,7 @@ async function loadSkills() {
         const response = await fetch(`${API_URL}/skills`);
         const skills = await response.json();
 
-        if (!skills || skills.length === 0) {
+        if (skills.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center">No skills found</td></tr>';
             return;
         }
@@ -594,7 +582,7 @@ async function loadSkills() {
                 <td><i class="${s.icon}" style="color: ${s.color}; font-size: 1.5rem;"></i></td>
                 <td>${escapeHtml(s.name)}</td>
                 <td>${s.level}%</td>
-                <td><span class="badge" style="background: #6bc4ff">${s.category || 'General'}</span></td>
+                <td><span class="badge badge-info">${s.category || 'General'}</span></td>
                 <td class="action-btns">
                     <button class="action-btn edit-btn" onclick="editSkill('${s._id || s.id}')">
                         <i class="fas fa-edit"></i>
@@ -605,6 +593,7 @@ async function loadSkills() {
                 </td>
             </tr>
         `).join('');
+        
     } catch (error) {
         console.error('Error loading skills:', error);
         tbody.innerHTML = '<tr><td colspan="5" class="text-center error">Error loading skills</td></tr>';
@@ -634,8 +623,9 @@ document.getElementById('skillForm')?.addEventListener('submit', async (e) => {
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('Skill added successfully! ✨');
+            showAlert('Skill added successfully!');
             closeModal('skillModal');
             loadSkills();
             e.target.reset();
@@ -662,6 +652,7 @@ window.editSkill = async function(id) {
         if (colorInput) colorInput.value = skill.color;
 
         document.getElementById('editSkillModal').classList.add('active');
+        
     } catch (error) {
         showAlert('Error loading skill', 'error');
     }
@@ -686,8 +677,9 @@ document.getElementById('editSkillForm')?.addEventListener('submit', async (e) =
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('Skill updated successfully! ✨');
+            showAlert('Skill updated successfully!');
             closeModal('editSkillModal');
             loadSkills();
         }
@@ -705,8 +697,9 @@ window.deleteSkill = async function(id) {
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('Skill deleted successfully!', 'success');
+            showAlert('Skill deleted successfully!');
             loadSkills();
         }
     } catch (error) {
@@ -714,274 +707,55 @@ window.deleteSkill = async function(id) {
     }
 };
 
-// ============================================
-// SOCIAL LINKS - FIXED VERSION
-// ============================================
-
+// ========== SOCIAL LINKS ==========
 async function loadSocialLinks() {
-    const socialGrid = document.getElementById('socialGrid');
-    if (!socialGrid) return;
-    
-    socialGrid.innerHTML = '<div class="loading">Loading social links...</div>';
-
     try {
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
         const links = profile.socialLinks || {};
 
-        if (Object.keys(links).length === 0) {
-            // Default social links
-            const defaultLinks = {
-                github: 'https://github.com/dhiraj',
-                linkedin: 'https://linkedin.com/in/dhiraj',
-                twitter: 'https://twitter.com/dhiraj',
-                instagram: 'https://instagram.com/dhiraj'
-            };
-            
-            socialGrid.innerHTML = Object.entries(defaultLinks).map(([platform, url]) => `
-                <div class="social-card" data-platform="${platform}">
-                    <i class="fab fa-${platform}"></i>
-                    <div class="platform">${platform.charAt(0).toUpperCase() + platform.slice(1)}</div>
-                    <input type="url" class="social-url" value="${url}" placeholder="URL">
-                    <div class="social-actions">
-                        <button class="social-save" onclick="saveSocialLink('${platform}')">
-                            <i class="fas fa-save"></i>
-                        </button>
-                        <button class="social-delete" onclick="deleteSocialLink('${platform}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            socialGrid.innerHTML = Object.entries(links).map(([platform, url]) => `
-                <div class="social-card" data-platform="${platform}">
-                    <i class="fab fa-${platform}"></i>
-                    <div class="platform">${platform.charAt(0).toUpperCase() + platform.slice(1)}</div>
-                    <input type="url" class="social-url" value="${url}" placeholder="URL">
-                    <div class="social-actions">
-                        <button class="social-save" onclick="saveSocialLink('${platform}')">
-                            <i class="fas fa-save"></i>
-                        </button>
-                        <button class="social-delete" onclick="deleteSocialLink('${platform}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
+        setValue('socialGithub', links.github);
+        setValue('socialLinkedin', links.linkedin);
+        setValue('socialTwitter', links.twitter);
+        setValue('socialInstagram', links.instagram);
+        setValue('socialFacebook', links.facebook);
+        setValue('socialYoutube', links.youtube);
+        
     } catch (error) {
         console.error('Error loading social links:', error);
-        socialGrid.innerHTML = '<div class="text-center error">Error loading social links</div>';
     }
 }
 
-window.saveSocialLink = async function(platform) {
-    const card = document.querySelector(`[data-platform="${platform}"]`);
-    const url = card.querySelector('.social-url').value;
-    
-    try {
-        const response = await fetchWithAuth(`${API_URL}/profile`);
-        const profile = await response.json();
-        
-        const socialLinks = profile.socialLinks || {};
-        socialLinks[platform] = url;
-        
-        const updateResponse = await fetchWithAuth(`${API_URL}/profile`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ socialLinks })
-        });
-        
-        const data = await updateResponse.json();
-        if (data.success) {
-            showAlert('Social link updated! ✨', 'success');
-        }
-    } catch (error) {
-        console.error('Error saving social link:', error);
-        showAlert('Error saving social link', 'error');
-    }
-};
-
-window.deleteSocialLink = async function(platform) {
-    if (!confirm(`Delete ${platform} link?`)) return;
-    
-    try {
-        const response = await fetchWithAuth(`${API_URL}/profile`);
-        const profile = await response.json();
-        
-        const socialLinks = profile.socialLinks || {};
-        delete socialLinks[platform];
-        
-        const updateResponse = await fetchWithAuth(`${API_URL}/profile`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ socialLinks })
-        });
-        
-        const data = await updateResponse.json();
-        if (data.success) {
-            showAlert('Social link deleted!', 'success');
-            loadSocialLinks();
-        }
-    } catch (error) {
-        console.error('Error deleting social link:', error);
-        showAlert('Error deleting social link', 'error');
-    }
-};
-
-// Add Social Modal
-document.getElementById('addSocialForm')?.addEventListener('submit', async (e) => {
+document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const platform = document.getElementById('socialPlatform').value;
-    const customPlatform = document.getElementById('customPlatform')?.value;
-    const icon = document.getElementById('socialIcon').value;
-    const url = document.getElementById('socialUrl').value;
-    
-    const platformName = platform === 'custom' ? customPlatform : platform;
-    
+
+    const socialLinks = {
+        github: document.getElementById('socialGithub')?.value || '',
+        linkedin: document.getElementById('socialLinkedin')?.value || '',
+        twitter: document.getElementById('socialTwitter')?.value || '',
+        instagram: document.getElementById('socialInstagram')?.value || '',
+        facebook: document.getElementById('socialFacebook')?.value || '',
+        youtube: document.getElementById('socialYoutube')?.value || ''
+    };
+
     try {
-        const response = await fetchWithAuth(`${API_URL}/profile`);
-        const profile = await response.json();
-        
-        const socialLinks = profile.socialLinks || {};
-        socialLinks[platformName] = url;
-        
-        const updateResponse = await fetchWithAuth(`${API_URL}/profile`, {
+        const response = await fetchWithAuth(`${API_URL}/profile`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ socialLinks })
-        });
-        
-        const data = await updateResponse.json();
-        if (data.success) {
-            showAlert('Social platform added! ✨', 'success');
-            closeModal('addSocialModal');
-            e.target.reset();
-            loadSocialLinks();
-        }
-    } catch (error) {
-        console.error('Error adding social link:', error);
-        showAlert('Error adding social link', 'error');
-    }
-});
-
-// ============================================
-// TESTIMONIALS MANAGEMENT
-// ============================================
-
-async function loadTestimonials() {
-    const container = document.getElementById('testimonialsList');
-    if (!container) return;
-    
-    container.innerHTML = '<div class="loading">Loading testimonials...</div>';
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/testimonials`);
-        const testimonials = await response.json();
-
-        if (!testimonials || testimonials.length === 0) {
-            container.innerHTML = '<div class="text-center">No testimonials yet</div>';
-            return;
-        }
-
-        container.innerHTML = testimonials.map(t => `
-            <div class="testimonial-item" data-id="${t._id || t.id}">
-                <div class="testimonial-quote">"${escapeHtml(t.content)}"</div>
-                <div class="testimonial-author">
-                    ${t.image ? `<img src="${BASE_URL}${t.image}" alt="${t.name}">` : ''}
-                    <div>
-                        <h4>${escapeHtml(t.name)}</h4>
-                        <p>${escapeHtml(t.position || '')} ${t.company ? 'at ' + escapeHtml(t.company) : ''}</p>
-                        <div class="testimonial-rating">
-                            ${'⭐'.repeat(t.rating || 5)}
-                        </div>
-                    </div>
-                </div>
-                <div class="testimonial-actions">
-                    <button class="action-btn edit-btn" onclick="editTestimonial('${t._id || t.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn delete-btn" onclick="deleteTestimonial('${t._id || t.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading testimonials:', error);
-        container.innerHTML = '<div class="text-center error">Error loading testimonials</div>';
-    }
-}
-
-window.showAddTestimonialModal = function() {
-    document.getElementById('addTestimonialModal').classList.add('active');
-};
-
-document.getElementById('addTestimonialForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData();
-    formData.append('name', document.getElementById('testimonialName').value);
-    formData.append('position', document.getElementById('testimonialPosition').value);
-    formData.append('company', document.getElementById('testimonialCompany').value);
-    formData.append('content', document.getElementById('testimonialContent').value);
-    formData.append('rating', document.getElementById('testimonialRating').value);
-    
-    const imageFile = document.getElementById('testimonialImage')?.files[0];
-    if (imageFile) formData.append('image', imageFile);
-    
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-    submitBtn.disabled = true;
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/testimonials`, {
-            method: 'POST',
-            body: formData
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('Testimonial added! ✨', 'success');
-            closeModal('addTestimonialModal');
-            e.target.reset();
-            document.getElementById('testimonialImagePreview').style.display = 'none';
-            loadTestimonials();
+            showAlert('Social links updated successfully!');
         }
     } catch (error) {
-        console.error('Error adding testimonial:', error);
-        showAlert('Error adding testimonial', 'error');
-    } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        showAlert('Error updating social links', 'error');
     }
 });
 
-window.deleteTestimonial = async function(id) {
-    if (!confirm('Delete this testimonial?')) return;
-
-    try {
-        const response = await fetchWithAuth(`${API_URL}/testimonials/${id}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            showAlert('Testimonial deleted!', 'success');
-            loadTestimonials();
-        }
-    } catch (error) {
-        showAlert('Error deleting testimonial', 'error');
-    }
-};
-
-// ============================================
-// SETTINGS
-// ============================================
-
+// ========== SETTINGS ==========
 async function loadSettings() {
     try {
         const response = await fetch(`${API_URL}/settings`);
@@ -996,6 +770,11 @@ async function loadSettings() {
         
         setValue('copyrightText', settings.copyrightText || 'All rights reserved');
         setValue('siteLanguage', settings.siteLanguage || 'en');
+        
+        if (settings.favicon) {
+            showImagePreview('faviconPreview', `${BASE_URL}${settings.favicon}`);
+        }
+        
     } catch (error) {
         console.error('Error loading settings:', error);
     }
@@ -1004,35 +783,35 @@ async function loadSettings() {
 document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const settings = {
-        siteTitle: document.getElementById('siteTitle')?.value || '',
-        siteDescription: document.getElementById('siteDescription')?.value || '',
-        adminEmail: document.getElementById('adminEmail')?.value || '',
-        maintenanceMode: document.getElementById('maintenanceMode')?.checked || false,
-        copyrightText: document.getElementById('copyrightText')?.value || 'All rights reserved',
-        siteLanguage: document.getElementById('siteLanguage')?.value || 'en'
-    };
+    const formData = new FormData();
+    formData.append('siteTitle', document.getElementById('siteTitle')?.value || '');
+    formData.append('siteDescription', document.getElementById('siteDescription')?.value || '');
+    formData.append('adminEmail', document.getElementById('adminEmail')?.value || '');
+    formData.append('maintenanceMode', document.getElementById('maintenanceMode')?.checked || false);
+    formData.append('copyrightText', document.getElementById('copyrightText')?.value || 'All rights reserved');
+    formData.append('siteLanguage', document.getElementById('siteLanguage')?.value || 'en');
+
+    const faviconFile = document.getElementById('favicon')?.files[0];
+    if (faviconFile) formData.append('favicon', faviconFile);
 
     try {
         const response = await fetchWithAuth(`${API_URL}/settings`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(settings)
+            body: formData
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('Settings updated! ✨', 'success');
+            showAlert('Settings updated successfully!');
+            loadSettings();
         }
     } catch (error) {
         showAlert('Error updating settings', 'error');
     }
 });
 
-// ============================================
-// UPLOADS MANAGER
-// ============================================
-
+// ========== UPLOADS MANAGER ==========
 async function loadUploads() {
     const container = document.getElementById('uploadsList');
     if (!container) return;
@@ -1057,6 +836,7 @@ async function loadUploads() {
                 </button>
             </div>
         `).join('');
+        
     } catch (error) {
         console.error('Error loading uploads:', error);
         container.innerHTML = '<div class="text-center error">Error loading uploads</div>';
@@ -1072,8 +852,9 @@ window.deleteUpload = async function(filename) {
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('File deleted!', 'success');
+            showAlert('File deleted successfully!');
             loadUploads();
         }
     } catch (error) {
@@ -1081,10 +862,7 @@ window.deleteUpload = async function(filename) {
     }
 };
 
-// ============================================
-// BACKUP & RESTORE
-// ============================================
-
+// ========== BACKUP & RESTORE ==========
 async function loadBackupInfo() {
     const lastBackupEl = document.getElementById('lastBackup');
     if (lastBackupEl) {
@@ -1107,7 +885,9 @@ window.backupData = async function() {
 
         localStorage.setItem('lastBackup', Date.now());
         document.getElementById('lastBackup').textContent = new Date().toLocaleString();
-        showAlert('Backup created! 💾', 'success');
+        
+        showAlert('Backup created successfully!');
+        
     } catch (error) {
         console.error('Backup error:', error);
         showAlert('Error creating backup', 'error');
@@ -1135,8 +915,9 @@ window.restoreData = async function() {
             });
 
             const data = await response.json();
+            
             if (data.success) {
-                showAlert('Data restored! ✨', 'success');
+                showAlert('Data restored successfully!');
                 setTimeout(() => window.location.reload(), 2000);
             }
         } catch (error) {
@@ -1146,10 +927,7 @@ window.restoreData = async function() {
     reader.readAsText(file);
 };
 
-// ============================================
-// MESSAGES
-// ============================================
-
+// ========== MESSAGES ==========
 async function loadMessages() {
     const tbody = document.getElementById('messagesList');
     if (!tbody) return;
@@ -1160,14 +938,16 @@ async function loadMessages() {
         const response = await fetchWithAuth(`${API_URL}/messages`);
         const messages = await response.json();
 
-        if (!messages || messages.length === 0) {
+        if (messages.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center">No messages yet</td></tr>';
             return;
         }
 
         tbody.innerHTML = messages.map(m => `
             <tr class="${m.read ? '' : 'unread'}">
-                <td>${!m.read ? '<span class="badge" style="background: #ff6b9d">New</span>' : '<span class="badge" style="background: #888">Read</span>'}</td>
+                <td>
+                    ${!m.read ? '<span class="badge badge-danger">New</span>' : '<span class="badge badge-success">Read</span>'}
+                </td>
                 <td>${escapeHtml(m.name || 'Anonymous')}</td>
                 <td><a href="mailto:${m.email}">${escapeHtml(m.email)}</a></td>
                 <td>${escapeHtml(m.subject || 'No Subject')}</td>
@@ -1184,6 +964,7 @@ async function loadMessages() {
         `).join('');
         
         await updateUnreadCount();
+        
     } catch (error) {
         console.error('Error loading messages:', error);
         tbody.innerHTML = '<tr><td colspan="6" class="text-center error">Error loading messages</td></tr>';
@@ -1195,18 +976,26 @@ window.viewMessage = async function(id) {
         const response = await fetchWithAuth(`${API_URL}/messages/${id}`);
         const message = await response.json();
 
-        if (!message) {
-            showAlert('Message not found', 'error');
-            return;
+        if (!message.read) {
+            await fetchWithAuth(`${API_URL}/messages/${id}/read`, { method: 'PUT' });
         }
 
         const detailDiv = document.getElementById('messageDetail');
         detailDiv.innerHTML = `
             <div class="message-detail">
-                <div class="detail-row"><strong>From:</strong> ${escapeHtml(message.name)} (${escapeHtml(message.email)})</div>
-                <div class="detail-row"><strong>Subject:</strong> ${escapeHtml(message.subject || 'No Subject')}</div>
-                <div class="detail-row"><strong>Date:</strong> ${formatDate(message.createdAt || message.date)}</div>
-                <div class="detail-row"><strong>Message:</strong><div class="message-content">${escapeHtml(message.message).replace(/\n/g, '<br>')}</div></div>
+                <div class="detail-row">
+                    <strong>From:</strong> ${escapeHtml(message.name)} (${escapeHtml(message.email)})
+                </div>
+                <div class="detail-row">
+                    <strong>Subject:</strong> ${escapeHtml(message.subject || 'No Subject')}
+                </div>
+                <div class="detail-row">
+                    <strong>Date:</strong> ${formatDate(message.createdAt || message.date)}
+                </div>
+                <div class="detail-row">
+                    <strong>Message:</strong>
+                    <div class="message-content">${escapeHtml(message.message).replace(/\n/g, '<br>')}</div>
+                </div>
             </div>
         `;
 
@@ -1214,11 +1003,8 @@ window.viewMessage = async function(id) {
         window.currentMessageId = id;
         window.currentMessageEmail = message.email;
         
-        if (!message.read) {
-            await fetchWithAuth(`${API_URL}/messages/${id}/read`, { method: 'PUT' });
-            updateUnreadCount();
-            loadMessages();
-        }
+        await updateUnreadCount();
+        
     } catch (error) {
         console.error('Error loading message:', error);
         showAlert('Error loading message', 'error');
@@ -1246,7 +1032,7 @@ window.closeMessageModal = function() {
 
 window.refreshMessages = function() {
     loadMessages();
-    showAlert('Messages refreshed! 🔄', 'info');
+    showAlert('Messages refreshed', 'info');
 };
 
 window.deleteMessage = async function(id) {
@@ -1258,11 +1044,11 @@ window.deleteMessage = async function(id) {
         });
 
         const data = await response.json();
+        
         if (data.success) {
-            showAlert('Message deleted!', 'success');
+            showAlert('Message deleted!');
             loadMessages();
             updateUnreadCount();
-            closeMessageModal();
         }
     } catch (error) {
         showAlert('Error deleting message', 'error');
@@ -1288,74 +1074,69 @@ async function updateUnreadCount() {
     }
 }
 
-// ============================================
-// MESSAGE FILTERS
-// ============================================
-document.querySelectorAll('[data-filter]').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        
-        const filter = this.dataset.filter;
+// ========== MESSAGE FILTERS ==========
+document.querySelectorAll('[data-message-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-message-filter]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const filter = btn.dataset.messageFilter;
         const rows = document.querySelectorAll('#messagesList tr');
         
         rows.forEach(row => {
-            if (filter === 'all') row.style.display = '';
-            else if (filter === 'unread') row.style.display = row.classList.contains('unread') ? '' : 'none';
-            else if (filter === 'read') row.style.display = !row.classList.contains('unread') ? '' : 'none';
+            if (filter === 'all') {
+                row.style.display = '';
+            } else if (filter === 'unread') {
+                row.style.display = row.classList.contains('unread') ? '' : 'none';
+            } else if (filter === 'read') {
+                row.style.display = !row.classList.contains('unread') ? '' : 'none';
+            }
         });
     });
 });
 
-// ============================================
-// MODAL FUNCTIONS
-// ============================================
-
+// ========== MODAL FUNCTIONS ==========
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.remove('active');
 }
+
 window.closeModal = closeModal;
 
-// ============================================
-// LOGOUT
-// ============================================
-
+// ========== LOGOUT ==========
 function logout() {
-    if (confirm('🌸 Logout? 🌸')) {
+    if (confirm('Are you sure you want to logout?')) {
         localStorage.clear();
-        sessionStorage.clear();
         window.location.href = 'index.html?loggedout=true';
     }
 }
+
 document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
-// ============================================
-// SESSION MONITORING
-// ============================================
-
+// ========== SESSION MONITORING ==========
 setInterval(() => {
-    const token = localStorage.getItem('adminToken');
-    const loginTime = localStorage.getItem('adminLoginTime');
-    if (token && loginTime && (Date.now() - parseInt(loginTime) > SESSION_TIMEOUT)) {
+    if (!checkAuth()) {
         console.log('Session expired - logging out');
         redirectToLogin('session_expired');
     }
 }, 60000);
 
-// ============================================
-// INITIALIZATION
-// ============================================
-
+// ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('📊 Admin Dashboard Initialized');
     
-    if (window.location.pathname.includes('dashboard.html')) {
-        showSection('dashboard');
-        await loadDashboard();
-        await updateUnreadCount();
-        await loadSocialLinks(); // Load social links
+    if (!checkAuth()) {
+        redirectToLogin('session_expired');
+        return;
     }
     
-    console.log('✅ Admin Panel Ready ✨');
+    showSection('dashboard');
+    
+    await loadDashboard();
+    await updateUnreadCount();
+    
+    const adminUser = localStorage.getItem('adminUser') || 'Admin';
+    document.getElementById('adminUsername').textContent = adminUser;
+    
+    console.log('✅ Admin Panel Ready');
 });
