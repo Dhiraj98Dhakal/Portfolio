@@ -604,9 +604,10 @@ app.put('/api/settings', authenticateToken, upload.single('favicon'), async (req
     }
 });
 // ============================================
-// TESTIMONIALS API
+// TESTIMONIALS API - ADD THESE ROUTES
 // ============================================
-// Testimonials API - Add this
+
+// Get all testimonials
 app.get('/api/testimonials', async (req, res) => {
     try {
         const testimonials = await Testimonial.find().sort('-createdAt');
@@ -616,6 +617,7 @@ app.get('/api/testimonials', async (req, res) => {
     }
 });
 
+// Add testimonial (admin only)
 app.post('/api/testimonials', authenticateToken, upload.single('image'), async (req, res) => {
     try {
         const testimonial = new Testimonial({
@@ -633,6 +635,7 @@ app.post('/api/testimonials', authenticateToken, upload.single('image'), async (
     }
 });
 
+// Delete testimonial
 app.delete('/api/testimonials/:id', authenticateToken, async (req, res) => {
     try {
         await Testimonial.findByIdAndDelete(req.params.id);
