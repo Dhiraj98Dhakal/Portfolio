@@ -29,19 +29,7 @@ async function loadAllData() {
         const projects = await projectsRes.json();
         updateProjects(projects);
 
-        // Load testimonials with error handling
-        try {
-            const testimonialsRes = await fetch(`${API_URL}/testimonials`);
-            if (testimonialsRes.ok) {
-                const testimonials = await testimonialsRes.json();
-                updateTestimonials(testimonials);
-            } else {
-                hideTestimonials();
-            }
-        } catch (error) {
-            console.log('Testimonials not available');
-            hideTestimonials();
-        }
+      
 
         console.log('✅ All data loaded at', new Date().toLocaleTimeString());
     } catch (error) {
@@ -231,43 +219,7 @@ function updateProjects(projects) {
     initProjectFilters();
 }
 
-// ========== UPDATE TESTIMONIALS ==========
-function updateTestimonials(testimonials) {
-    const container = document.getElementById('testimonials-container');
-    if (!container) return;
-    
-    if (!Array.isArray(testimonials) || testimonials.length === 0) {
-        container.style.display = 'none';
-        return;
-    }
 
-    container.style.display = 'grid';
-    container.innerHTML = testimonials.map(t => `
-        <div class="testimonial-card">
-            <div class="testimonial-content">
-                <i class="fas fa-quote-left"></i>
-                <p>${t.content || ''}</p>
-            </div>
-            <div class="testimonial-author">
-                ${t.image ? `<img src="${BASE_URL}${t.image}" alt="${t.name || 'Client'}">` : ''}
-                <div class="author-info">
-                    <h4>${t.name || 'Anonymous'}</h4>
-                    <p>${t.position || ''}${t.company ? ', ' + t.company : ''}</p>
-                    <div class="rating">
-                        ${'⭐'.repeat(t.rating || 5)}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-function hideTestimonials() {
-    const container = document.getElementById('testimonials-container');
-    if (container) {
-        container.style.display = 'none';
-    }
-}
 
 // ========== PROJECT FILTERS ==========
 function initProjectFilters() {
