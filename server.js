@@ -29,6 +29,7 @@ const PORT = process.env.PORT || 3001;
 const corsOptions = {
     origin: [
         'https://dhirajdhakal.netlify.app',
+        'https://dhirajgg.netlify.app', 
         'https://portfolio-xqwu.onrender.com',
         'http://localhost:3000',
         'http://localhost:3001',
