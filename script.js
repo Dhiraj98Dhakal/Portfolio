@@ -425,14 +425,23 @@ function initBackToTop() {
     });
 }
 
-// ========== SMOOTH SCROLL ==========
+// ========== SMOOTH SCROLL - FIXED VERSION ==========
 function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
+            const targetId = this.getAttribute('href');
+            
+            // Skip if it's just "#" or empty
+            if (!targetId || targetId === '#') return;
+            
+            try {
+                const target = document.querySelector(targetId);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } catch (error) {
+                console.log('Invalid selector:', targetId);
             }
         });
     });

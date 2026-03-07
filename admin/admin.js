@@ -159,6 +159,36 @@ navLinks.forEach(link => {
     });
 });
 
+
+// ========== PROFILE LOAD FUNCTION ==========
+async function loadProfile() {
+    try {
+        const response = await fetch(`${API_URL}/profile`);
+        const profile = await response.json();
+
+        document.getElementById('profileName').value = profile.name || '';
+        document.getElementById('profileTitle').value = profile.title || '';
+        document.getElementById('profileBio').value = profile.bio || '';
+        document.getElementById('profileEmail').value = profile.email || '';
+        document.getElementById('profilePhone').value = profile.phone || '';
+        document.getElementById('profileLocation').value = profile.location || '';
+        document.getElementById('profileCountry').value = profile.country || 'Nepal';
+        document.getElementById('profileExperience').value = profile.experience || '2+';
+        document.getElementById('profileInitials').value = profile.initials || 'D';
+
+        if (profile.profileImage) {
+            const preview = document.getElementById('profileImagePreview');
+            preview.src = profile.profileImage.startsWith('http') ? profile.profileImage : `${BASE_URL}${profile.profileImage}`;
+            preview.style.display = 'block';
+        }
+        
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        alert('Error loading profile');
+    }
+}
+
+
 // ========== DASHBOARD ==========
 async function loadDashboard() {
     const statsContainer = document.getElementById('dashboard-stats');
