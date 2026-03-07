@@ -382,17 +382,21 @@ app.put('/api/profile', authenticateToken, upload.fields([
                 // socialLinks object हो कि string हो जाँच गर
                 let socialLinks = req.body.socialLinks;
                 
+                console.log('📥 RAW socialLinks received:', socialLinks);
+                console.log('📥 Type:', typeof socialLinks);
+                
                 // यदि string हो भने मात्र parse गर, नत्र object नै use गर
                 if (typeof socialLinks === 'string') {
                     try {
                         socialLinks = JSON.parse(socialLinks);
+                        console.log('📥 Parsed from string:', socialLinks);
                     } catch (e) {
                         console.error('❌ JSON parse error:', e);
                         socialLinks = {};
                     }
                 }
                 
-                console.log('📥 Received social links:', socialLinks);
+                console.log('📥 Final social links object:', socialLinks);
                 
                 // Make sure profile.socialLinks exists
                 if (!profile.socialLinks) {
@@ -407,7 +411,7 @@ app.put('/api/profile', authenticateToken, upload.fields([
                 if (socialLinks.facebook !== undefined) profile.socialLinks.facebook = socialLinks.facebook || '';
                 if (socialLinks.youtube !== undefined) profile.socialLinks.youtube = socialLinks.youtube || '';
                 
-                console.log('✅ Updated social links:', profile.socialLinks);
+                console.log('✅ Updated social links in profile:', profile.socialLinks);
             } catch (e) {
                 console.error('❌ Social links error:', e);
             }
@@ -445,6 +449,7 @@ app.put('/api/profile', authenticateToken, upload.fields([
         
         await profile.save();
         console.log('✅ Profile saved successfully');
+        console.log('✅ Final socialLinks in DB:', profile.socialLinks);
         
         // Return the updated profile
         res.json({ 
