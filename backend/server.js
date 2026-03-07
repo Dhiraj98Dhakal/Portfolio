@@ -390,45 +390,30 @@ app.put('/api/profile', authenticateToken, upload.fields([
         });
 
        // ===== SOCIAL LINKS - ULTIMATE FIX =====
+// ===== SOCIAL LINKS - DIRECT ASSIGNMENT (कुनै पनि condition छैन) =====
 if (req.body.socialLinks) {
     try {
-        console.log('\n📤 SOCIAL LINKS PROCESSING:');
-        
-        // Get socialLinks - यो object नै हुनुपर्छ
         let socialLinks = req.body.socialLinks;
-        console.log('Raw socialLinks:', socialLinks);
-        
-        // If it's a string, parse it
         if (typeof socialLinks === 'string') {
             socialLinks = JSON.parse(socialLinks);
         }
         
-        // Make sure profile.socialLinks exists
-        if (!profile.socialLinks) {
-            profile.socialLinks = {};
-        }
+        // सीधा assign गर्ने, कुनै condition छैन
+        profile.socialLinks = {
+            github: socialLinks.github || '',
+            linkedin: socialLinks.linkedin || '',
+            twitter: socialLinks.twitter || '',
+            instagram: socialLinks.instagram || '', // यो value सीधै आउँछ
+            facebook: socialLinks.facebook || '',
+            youtube: socialLinks.youtube || ''
+        };
         
-        // CRITICAL: Instagram value check
-        console.log('Instagram received:', socialLinks.instagram);
-        
-        // Update EACH social link individually
-        profile.socialLinks.github = socialLinks.github || '';
-        profile.socialLinks.linkedin = socialLinks.linkedin || '';
-        profile.socialLinks.twitter = socialLinks.twitter || '';
-        profile.socialLinks.instagram = socialLinks.instagram || ''; // ← यो लाइन सबैभन्दा महत्त्वपूर्ण
-        profile.socialLinks.facebook = socialLinks.facebook || '';
-        profile.socialLinks.youtube = socialLinks.youtube || '';
-        
-        console.log('Final socialLinks in profile:', profile.socialLinks);
-        
-        // Mark as modified
+        console.log('✅ Social links updated:', profile.socialLinks);
         profile.markModified('socialLinks');
-        
     } catch (e) {
-        console.error('❌ SOCIAL LINKS ERROR:', e);
+        console.error('❌ Error:', e);
     }
 }
-
         // Update images
         if (req.files) {
             if (req.files.profileImage) {
