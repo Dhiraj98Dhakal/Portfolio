@@ -29,6 +29,21 @@ async function loadAllData() {
         const projects = await projectsRes.json();
         updateProjects(projects);
 
+        // Load testimonials
+        try {
+            const testimonialsRes = await fetch(`${API_URL}/testimonials`);
+            if (testimonialsRes.ok) {
+                const testimonials = await testimonialsRes.json();
+                updateTestimonials(testimonials);
+            } else {
+                console.log('Testimonials endpoint not available');
+                const container = document.getElementById('testimonials-container');
+                if (container) container.innerHTML = '<p class="no-data">Testimonials coming soon</p>';
+            }
+        } catch (error) {
+            console.log('Testimonials not available');
+        }
+
         console.log('✅ All data loaded at', new Date().toLocaleTimeString());
     } catch (error) {
         console.log('❌ Backend not connected, using default data');
@@ -36,7 +51,7 @@ async function loadAllData() {
     }
 }
 
-// ========== UPDATE PROFILE - COMPLETE FIXED VERSION ==========
+// ========== UPDATE PROFILE ==========
 function updateProfile(profile) {
     // Update text elements
     document.querySelectorAll('[data-profile]').forEach(el => {
@@ -59,7 +74,7 @@ function updateProfile(profile) {
         }
     });
 
-    // ========== SOCIAL LINKS UPDATE - FIXED VERSION ==========
+    // ========== SOCIAL LINKS UPDATE - FIXED WITH CLICK HANDLER ==========
     if (profile.socialLinks) {
         console.log('🔗 Updating social links with:', profile.socialLinks);
         
@@ -69,17 +84,29 @@ function updateProfile(profile) {
             const url = profile.socialLinks[platform];
             
             if (url && url.trim() !== '') {
-
-    el.href = url;
-    el.setAttribute('target', '_blank');
-    el.setAttribute('rel', 'noopener noreferrer');
-
-    el.style.display = 'inline-flex';
-    el.style.pointerEvents = 'auto';
-    el.style.cursor = 'pointer';
-    el.style.opacity = '1';
-
-} else {
+                // Set href and attributes
+                el.href = url;
+                el.setAttribute('target', '_blank');
+                el.setAttribute('rel', 'noopener noreferrer');
+                
+                // Make visible and clickable
+                el.style.display = 'inline-flex';
+                el.style.pointerEvents = 'auto';
+                el.style.cursor = 'pointer';
+                el.style.opacity = '1';
+                
+                // Remove old click handlers and add new one (ensures click works)
+                el.removeEventListener('click', window.socialClickHandler);
+                el.addEventListener('click', window.socialClickHandler = function(e) {
+                    e.preventDefault();
+                    const url = this.href;
+                    if (url && url !== '#' && url !== '') {
+                        window.open(url, '_blank');
+                    }
+                });
+                
+                console.log(`✅ Set ${platform} to:`, url);
+            } else {
                 // Hide if no URL
                 el.style.display = 'none';
                 console.log(`❌ Hidden ${platform}`);
@@ -101,6 +128,34 @@ function updateProfile(profile) {
     if (profile.name) {
         document.title = `${profile.name} - Portfolio`;
     }
+}
+
+// ========== UPDATE TESTIMONIALS ==========
+function updateTestimonials(testimonials) {
+    const container = document.getElementById('testimonials-container');
+    if (!container) return;
+
+    if (!testimonials || testimonials.length === 0) {
+        container.innerHTML = '<p class="no-data">No testimonials yet</p>';
+        return;
+    }
+
+    container.innerHTML = testimonials.map(t => `
+        <div class="testimonial-card">
+            <div class="testimonial-content">
+                <i class="fas fa-quote-left"></i>
+                <p>${t.content}</p>
+            </div>
+            <div class="testimonial-author">
+                ${t.image ? `<img src="${t.image.startsWith('http') ? t.image : BASE_URL + t.image}" alt="${t.name}">` : ''}
+                <div class="author-info">
+                    <h4>${t.name}</h4>
+                    <p>${t.position || ''} ${t.company ? `@ ${t.company}` : ''}</p>
+                    <div class="rating">${'⭐'.repeat(t.rating || 5)}</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
 }
 
 // ========== UPDATE SKILLS ==========
@@ -129,7 +184,6 @@ function updateSkills(skills) {
 
 // ========== FAVICON SETUP ==========
 function setFavicon(iconUrl) {
-    // Remove existing favicons
     document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]').forEach(el => el.remove());
     
     if (iconUrl && iconUrl !== 'null') {
@@ -288,18 +342,18 @@ document.getElementById('contact-form')?.addEventListener('submit', async (e) =>
 function loadDefaultData() {
     // Default skills
     updateSkills([
-        { name: 'HTML5', level: 95, icon: 'fab fa-html5', color: '#E34F26', category: 'frontend' },
-        { name: 'CSS3', level: 92, icon: 'fab fa-css3-alt', color: '#1572B6', category: 'frontend' },
-        { name: 'JavaScript', level: 88, icon: 'fab fa-js', color: '#F7DF1E', category: 'frontend' },
-        { name: 'React', level: 85, icon: 'fab fa-react', color: '#61DAFB', category: 'frontend' },
-        { name: 'Node.js', level: 78, icon: 'fab fa-node', color: '#339933', category: 'backend' }
+        { name: 'HTML5', level: 95, icon: 'fab fa-html5', color: '#E34F26' },
+        { name: 'CSS3', level: 92, icon: 'fab fa-css3-alt', color: '#1572B6' },
+        { name: 'JavaScript', level: 88, icon: 'fab fa-js', color: '#F7DF1E' },
+        { name: 'React', level: 85, icon: 'fab fa-react', color: '#61DAFB' },
+        { name: 'Node.js', level: 78, icon: 'fab fa-node', color: '#339933' }
     ]);
 
     // Default projects
     updateProjects([
         {
             title: 'Smart Attendance System',
-            description: 'QR code based attendance system for college students with real-time tracking.',
+            description: 'QR code based attendance system',
             technologies: ['React', 'Node.js', 'MongoDB'],
             github: 'https://github.com',
             demo: 'https://demo.com',
@@ -307,7 +361,7 @@ function loadDefaultData() {
         },
         {
             title: 'E-Learning Platform',
-            description: 'Modern online learning platform with video courses, quizzes, and progress tracking.',
+            description: 'Online learning platform',
             technologies: ['Next.js', 'Tailwind', 'Prisma'],
             github: 'https://github.com',
             demo: 'https://demo.com',
@@ -420,6 +474,18 @@ window.addEventListener('storage', (e) => {
     if (e.key === 'adminUpdate') {
         console.log('🔄 Admin update detected, refreshing...');
         loadAllData();
+    }
+});
+
+// ========== GLOBAL CLICK HANDLER FOR SOCIAL LINKS ==========
+document.addEventListener('click', function(e) {
+    const socialLink = e.target.closest('[data-social]');
+    if (socialLink) {
+        e.preventDefault();
+        const url = socialLink.href;
+        if (url && url !== '#' && url !== '') {
+            window.open(url, '_blank');
+        }
     }
 });
 
