@@ -318,10 +318,6 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 // ============================================
-// PROFILE API - FIXED VERSION
-// ============================================
-
-// ============================================
 // PROFILE API - COMPLETE FIXED VERSION
 // ============================================
 
@@ -356,6 +352,7 @@ app.get('/api/profile', async (req, res) => {
     }
 });
 
+// ===== यो एउटा मात्र PUT ROUTE हो - SOCIAL LINKS ERROR FREE =====
 app.put('/api/profile', authenticateToken, upload.fields([
     { name: 'profileImage', maxCount: 1 },
     { name: 'aboutImage', maxCount: 1 }
@@ -364,7 +361,7 @@ app.put('/api/profile', authenticateToken, upload.fields([
         let profile = await Profile.findOne();
         if (!profile) profile = new Profile();
 
-        console.log('📥 Profile update received. Body:', req.body);
+        console.log('📥 Profile update received. Body fields:', Object.keys(req.body));
 
         // Update text fields
         const textFields = [
@@ -379,10 +376,22 @@ app.put('/api/profile', authenticateToken, upload.fields([
             }
         });
 
-        // Update social links - CRITICAL FIX
+        // ===== SOCIAL LINKS - ERROR FREE VERSION =====
         if (req.body.socialLinks) {
             try {
-                const socialLinks = JSON.parse(req.body.socialLinks);
+                // socialLinks object हो कि string हो जाँच गर
+                let socialLinks = req.body.socialLinks;
+                
+                // यदि string हो भने मात्र parse गर, नत्र object नै use गर
+                if (typeof socialLinks === 'string') {
+                    try {
+                        socialLinks = JSON.parse(socialLinks);
+                    } catch (e) {
+                        console.error('❌ JSON parse error:', e);
+                        socialLinks = {};
+                    }
+                }
+                
                 console.log('📥 Received social links:', socialLinks);
                 
                 // Make sure profile.socialLinks exists
@@ -390,14 +399,36 @@ app.put('/api/profile', authenticateToken, upload.fields([
                     profile.socialLinks = {};
                 }
                 
-                // Update each social link
-                Object.keys(socialLinks).forEach(key => {
-                    profile.socialLinks[key] = socialLinks[key];
-                });
+                // Update each social link - सबै platforms को लागि
+                if (socialLinks.github !== undefined) profile.socialLinks.github = socialLinks.github || '';
+                if (socialLinks.linkedin !== undefined) profile.socialLinks.linkedin = socialLinks.linkedin || '';
+                if (socialLinks.twitter !== undefined) profile.socialLinks.twitter = socialLinks.twitter || '';
+                if (socialLinks.instagram !== undefined) profile.socialLinks.instagram = socialLinks.instagram || '';
+                if (socialLinks.facebook !== undefined) profile.socialLinks.facebook = socialLinks.facebook || '';
+                if (socialLinks.youtube !== undefined) profile.socialLinks.youtube = socialLinks.youtube || '';
                 
                 console.log('✅ Updated social links:', profile.socialLinks);
             } catch (e) {
-                console.error('❌ Social links parse error:', e);
+                console.error('❌ Social links error:', e);
+            }
+        } else {
+            console.log('⚠️ No socialLinks in request body');
+        }
+        // ===== SOCIAL LINKS ERROR FREE CODE END =====
+
+        // Update stats if provided
+        if (req.body.stats) {
+            try {
+                let stats = req.body.stats;
+                if (typeof stats === 'string') {
+                    stats = JSON.parse(stats);
+                }
+                if (!profile.stats) profile.stats = {};
+                Object.keys(stats).forEach(key => {
+                    profile.stats[key] = stats[key];
+                });
+            } catch (e) {
+                console.error('❌ Stats parse error:', e);
             }
         }
 
@@ -409,6 +440,9 @@ app.put('/api/profile', authenticateToken, upload.fields([
             profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
         }
 
+        // Mark socialLinks as modified to ensure save
+        profile.markModified('socialLinks');
+        
         await profile.save();
         console.log('✅ Profile saved successfully');
         
@@ -578,6 +612,18 @@ app.get('/api/messages/unread/count', authenticateToken, async (req, res) => {
     }
 });
 
+app.get('/api/messages/:id', authenticateToken, async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.id);
+        if (!message) {
+            return res.status(404).json({ success: false, message: 'Message not found' });
+        }
+        res.json(message);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
     try {
         const message = await Message.findByIdAndUpdate(
@@ -585,7 +631,7 @@ app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
             { read: true },
             { new: true }
         );
-        res.json({ success: true });
+        res.json({ success: true, message });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -654,8 +700,9 @@ app.put('/api/settings', authenticateToken, upload.single('favicon'), async (req
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 // ============================================
-// TESTIMONIALS API - ADD THESE ROUTES
+// TESTIMONIALS API
 // ============================================
 
 // Get all testimonials
@@ -663,6 +710,19 @@ app.get('/api/testimonials', async (req, res) => {
     try {
         const testimonials = await Testimonial.find().sort('-createdAt');
         res.json(testimonials);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get single testimonial
+app.get('/api/testimonials/:id', async (req, res) => {
+    try {
+        const testimonial = await Testimonial.findById(req.params.id);
+        if (!testimonial) {
+            return res.status(404).json({ success: false, message: 'Testimonial not found' });
+        }
+        res.json(testimonial);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -681,6 +741,31 @@ app.post('/api/testimonials', authenticateToken, upload.single('image'), async (
         });
         await testimonial.save();
         res.status(201).json({ success: true, testimonial });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update testimonial
+app.put('/api/testimonials/:id', authenticateToken, upload.single('image'), async (req, res) => {
+    try {
+        const testimonial = await Testimonial.findById(req.params.id);
+        if (!testimonial) {
+            return res.status(404).json({ success: false, message: 'Testimonial not found' });
+        }
+
+        testimonial.name = req.body.name || testimonial.name;
+        testimonial.position = req.body.position || testimonial.position;
+        testimonial.company = req.body.company || testimonial.company;
+        testimonial.content = req.body.content || testimonial.content;
+        testimonial.rating = parseInt(req.body.rating) || testimonial.rating;
+
+        if (req.file) {
+            testimonial.image = `/uploads/${req.file.filename}`;
+        }
+
+        await testimonial.save();
+        res.json({ success: true, testimonial });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -727,6 +812,7 @@ app.get('/api/backup', authenticateToken, async (req, res) => {
             profile: await Profile.findOne(),
             projects: await Project.find(),
             skills: await Skill.find(),
+            testimonials: await Testimonial.find(),
             settings: await Settings.findOne(),
             timestamp: new Date().toISOString()
         };
@@ -740,62 +826,32 @@ app.post('/api/restore', authenticateToken, async (req, res) => {
     try {
         const backup = req.body;
         
-        await Profile.deleteMany({});
-        await Profile.create(backup.profile);
+        if (backup.profile) {
+            await Profile.deleteMany({});
+            await Profile.create(backup.profile);
+        }
         
-        await Project.deleteMany({});
-        await Project.insertMany(backup.projects);
+        if (backup.projects) {
+            await Project.deleteMany({});
+            await Project.insertMany(backup.projects);
+        }
         
-        await Skill.deleteMany({});
-        await Skill.insertMany(backup.skills);
+        if (backup.skills) {
+            await Skill.deleteMany({});
+            await Skill.insertMany(backup.skills);
+        }
         
-        await Settings.deleteMany({});
-        await Settings.create(backup.settings);
+        if (backup.testimonials) {
+            await Testimonial.deleteMany({});
+            await Testimonial.insertMany(backup.testimonials);
+        }
+        
+        if (backup.settings) {
+            await Settings.deleteMany({});
+            await Settings.create(backup.settings);
+        }
         
         res.json({ success: true, message: 'Data restored successfully' });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-
-// ============================================
-// TESTIMONIALS API - ADD THESE ROUTES
-// ============================================
-
-// Get all testimonials
-app.get('/api/testimonials', async (req, res) => {
-    try {
-        const testimonials = await Testimonial.find().sort('-createdAt');
-        res.json(testimonials);
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Add testimonial (admin only)
-app.post('/api/testimonials', authenticateToken, upload.single('image'), async (req, res) => {
-    try {
-        const testimonial = new Testimonial({
-            name: req.body.name,
-            position: req.body.position || '',
-            company: req.body.company || '',
-            content: req.body.content,
-            rating: parseInt(req.body.rating) || 5,
-            image: req.file ? `/uploads/${req.file.filename}` : null
-        });
-        await testimonial.save();
-        res.status(201).json({ success: true, testimonial });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Delete testimonial
-app.delete('/api/testimonials/:id', authenticateToken, async (req, res) => {
-    try {
-        await Testimonial.findByIdAndDelete(req.params.id);
-        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
