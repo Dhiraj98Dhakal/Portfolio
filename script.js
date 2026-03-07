@@ -73,18 +73,24 @@ function updateProfile(profile) {
         }
     });
 
-    // Update social links
+    // Update social links - FIXED: सबै platforms को लागि
     if (profile.socialLinks) {
-        // Social links सेट गर्ने सही तरिका
-document.querySelectorAll('[data-social="instagram"]').forEach(el => {
-    const url = profile.socialLinks?.instagram;
-    if (url) {
-        el.href = url;
-        el.style.display = 'flex';
-    } else {
-        el.style.display = 'none';
-    }
-});
+        // सबै social platforms को लागि एकै पटकमा update गर्ने
+        document.querySelectorAll('[data-social]').forEach(el => {
+            const platform = el.getAttribute('data-social');
+            const url = profile.socialLinks[platform];
+            
+            if (url && url.trim() !== '') {
+                el.href = url;
+                el.style.display = 'flex';
+                el.target = '_blank';
+                el.rel = 'noopener noreferrer';
+                console.log(`✅ Updated ${platform}:`, url);
+            } else {
+                el.style.display = 'none';
+                console.log(`❌ Hidden ${platform} - no URL`);
+            }
+        });
     }
 
     // Update stats
@@ -127,7 +133,7 @@ function updateSkills(skills) {
     `).join('');
 }
 
-// ========== FAVICON SETUP - FIXED ==========
+// ========== FAVICON SETUP ==========
 function setFavicon(iconUrl) {
     // Remove existing favicon
     document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]').forEach(el => el.remove());
@@ -172,8 +178,6 @@ async function loadFavicon() {
         setFavicon('icons/favicon.png');
     }
 }
-
-
 
 // ========== UPDATE PROJECTS ==========
 function updateProjects(projects) {
@@ -425,23 +429,24 @@ function initBackToTop() {
     });
 }
 
-// ========== SMOOTH SCROLL - FIXED VERSION ==========
+// ========== SMOOTH SCROLL ==========
 function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             e.preventDefault();
             const targetId = this.getAttribute('href');
             
-            // Skip if it's just "#" or empty
             if (!targetId || targetId === '#') return;
             
-            try {
-                const target = document.querySelector(targetId);
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (targetId.startsWith('#')) {
+                try {
+                    const target = document.querySelector(targetId);
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                } catch (error) {
+                    console.log('Invalid selector:', targetId);
                 }
-            } catch (error) {
-                console.log('Invalid selector:', targetId);
             }
         });
     });
@@ -459,6 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Portfolio initializing...');
     
     loadAllData();
+    loadFavicon();
     
     initNavbar();
     initSmoothScroll();
