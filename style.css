@@ -810,6 +810,17 @@ p {
         justify-content: center;
     }
 }
+.social-icon, .social-link, .social-icons a {
+    cursor: pointer;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 10;
+}
+
+.social-icon:hover, .social-link:hover, .social-icons a:hover {
+    transform: translateY(-3px);
+}
+
 
 /* ========== BUTTONS ========== */
 .btn {

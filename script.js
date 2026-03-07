@@ -36,7 +36,7 @@ async function loadAllData() {
     }
 }
 
-// ========== UPDATE PROFILE ==========
+// ========== UPDATE PROFILE - FIXED VERSION ==========
 function updateProfile(profile) {
     // Update text elements
     document.querySelectorAll('[data-profile]').forEach(el => {
@@ -59,12 +59,14 @@ function updateProfile(profile) {
         }
     });
 
-    // ========== SOCIAL LINKS UPDATE - DIRECT APPROACH ==========
+    // ========== SOCIAL LINKS UPDATE - FIXED VERSION WITH POINTER EVENTS ==========
     if (profile.socialLinks) {
+        console.log('🔗 Updating social links with:', profile.socialLinks);
+        
         // Hero section social links
-        const heroSocial = document.getElementById('hero-social');
+        const heroSocial = document.getElementById('hero-social') || document.querySelector('.hero-social');
         if (heroSocial) {
-            const socialIcons = heroSocial.querySelectorAll('.social-icon');
+            const socialIcons = heroSocial.querySelectorAll('.social-icon, [data-social]');
             socialIcons.forEach(icon => {
                 const platform = icon.getAttribute('data-social');
                 const url = profile.socialLinks[platform];
@@ -72,12 +74,15 @@ function updateProfile(profile) {
                 if (url && url.trim() !== '') {
                     icon.href = url;
                     icon.style.display = 'flex';
+                    icon.style.pointerEvents = 'auto';
+                    icon.style.cursor = 'pointer';
+                    icon.style.opacity = '1';
                     icon.setAttribute('target', '_blank');
                     icon.setAttribute('rel', 'noopener noreferrer');
-                    console.log(`✅ Updated ${platform}:`, url);
+                    console.log(`✅ Set ${platform} to:`, url);
                 } else {
                     icon.style.display = 'none';
-                    console.log(`❌ Hidden ${platform} - no URL`);
+                    console.log(`❌ Hidden ${platform}`);
                 }
             });
         }
@@ -85,7 +90,7 @@ function updateProfile(profile) {
         // Contact section social links
         const contactSocial = document.querySelector('.contact-social .social-links');
         if (contactSocial) {
-            const socialLinks = contactSocial.querySelectorAll('.social-link');
+            const socialLinks = contactSocial.querySelectorAll('.social-link, [data-social]');
             socialLinks.forEach(link => {
                 const platform = link.getAttribute('data-social');
                 const url = profile.socialLinks[platform];
@@ -93,6 +98,8 @@ function updateProfile(profile) {
                 if (url && url.trim() !== '') {
                     link.href = url;
                     link.style.display = 'flex';
+                    link.style.pointerEvents = 'auto';
+                    link.style.cursor = 'pointer';
                     link.setAttribute('target', '_blank');
                     link.setAttribute('rel', 'noopener noreferrer');
                 } else {
@@ -104,7 +111,7 @@ function updateProfile(profile) {
         // Footer social links
         const footerSocial = document.querySelector('.footer-social .social-icons');
         if (footerSocial) {
-            const footerIcons = footerSocial.querySelectorAll('a');
+            const footerIcons = footerSocial.querySelectorAll('a, [data-social]');
             footerIcons.forEach(link => {
                 const platform = link.getAttribute('data-social');
                 const url = profile.socialLinks[platform];
@@ -112,6 +119,8 @@ function updateProfile(profile) {
                 if (url && url.trim() !== '') {
                     link.href = url;
                     link.style.display = 'flex';
+                    link.style.pointerEvents = 'auto';
+                    link.style.cursor = 'pointer';
                     link.setAttribute('target', '_blank');
                     link.setAttribute('rel', 'noopener noreferrer');
                 } else {
