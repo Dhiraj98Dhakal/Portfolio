@@ -68,8 +68,8 @@ function updateProfile(profile) {
             if (url && url.trim() !== '') {
                 el.href = url;
                 el.style.display = 'flex';
-                el.target = '_blank';
-                el.rel = 'noopener noreferrer';
+                el.setAttribute('target', '_blank');
+                el.setAttribute('rel', 'noopener noreferrer');
                 console.log(`✅ Updated ${platform}:`, url);
             } else {
                 el.style.display = 'none';
@@ -195,12 +195,12 @@ function updateProjects(projects) {
                 </div>
                 <div class="project-links">
                     ${project.github ? `
-                        <a href="${project.github}" target="_blank" class="project-link">
+                        <a href="${project.github}" target="_blank" rel="noopener noreferrer" class="project-link">
                             <i class="fab fa-github"></i> Code
                         </a>
                     ` : ''}
                     ${project.demo ? `
-                        <a href="${project.demo}" target="_blank" class="project-link">
+                        <a href="${project.demo}" target="_blank" rel="noopener noreferrer" class="project-link">
                             <i class="fas fa-external-link-alt"></i> Live
                         </a>
                     ` : ''}
