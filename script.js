@@ -2,8 +2,9 @@
 // script.js - Complete Dynamic Frontend
 // ============================================
 
-const API_URL = 'https://portfolio-xqwu.onrender.com/api';
-const BASE_URL = 'https://portfolio-xqwu.onrender.com';
+// पुरानो Render URL हटाएर नयाँ Railway URL राख्नुहोस्
+const API_URL = 'https://diplomatic-light-production.up.railway.app/api';
+const BASE_URL = 'https://diplomatic-light-production.up.railway.app';
 const REFRESH_INTERVAL = 30000;
 
 console.log('✅ Frontend JS Loaded');
