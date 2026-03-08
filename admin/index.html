@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
+        /* तपाईंको सबै CSS उही रहनेछ */
         * {
             margin: 0;
             padding: 0;
@@ -30,7 +31,6 @@
             overflow: hidden;
         }
 
-        /* Cyberpunk Grid Background */
         body::before {
             content: '';
             position: absolute;
@@ -51,7 +51,6 @@
             100% { transform: translate(-30%, -30%) rotate(10deg); }
         }
 
-        /* Login Container */
         .login-container {
             width: 100%;
             max-width: 450px;
@@ -82,7 +81,6 @@
             overflow: hidden;
         }
 
-        /* Animated Border */
         .login-card::before {
             content: '';
             position: absolute;
@@ -108,7 +106,6 @@
             50% { background-position: 100% 50%; }
         }
 
-        /* Logo */
         .login-header {
             text-align: center;
             margin-bottom: 30px;
@@ -148,7 +145,6 @@
             font-size: 0.95rem;
         }
 
-        /* Server Status */
         .server-status {
             display: flex;
             align-items: center;
@@ -183,7 +179,6 @@
             50% { opacity: 0.5; }
         }
 
-        /* Form */
         .form-group {
             margin-bottom: 20px;
             position: relative;
@@ -226,7 +221,6 @@
             color: #c0c0ff66;
         }
 
-        /* Remember & Forgot */
         .remember-forgot {
             display: flex;
             justify-content: space-between;
@@ -260,7 +254,6 @@
             text-shadow: 0 0 10px #00f3ff;
         }
 
-        /* Login Button */
         .login-btn {
             width: 100%;
             padding: 14px;
@@ -309,7 +302,6 @@
             transform: none;
         }
 
-        /* Message */
         .message {
             text-align: center;
             margin-top: 20px;
@@ -353,7 +345,6 @@
             }
         }
 
-        /* Loading Spinner */
         .spinner {
             display: inline-block;
             width: 20px;
@@ -368,7 +359,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Demo Credentials */
         .demo-credentials {
             background: rgba(0, 243, 255, 0.1);
             border: 1px solid #00f3ff33;
@@ -404,7 +394,6 @@
             border: 1px solid #ff00c8;
         }
 
-        /* Footer Links */
         .footer-links {
             text-align: center;
             margin-top: 20px;
@@ -427,7 +416,6 @@
             margin-right: 5px;
         }
 
-        /* Responsive */
         @media (max-width: 480px) {
             .login-card {
                 padding: 30px 20px;
@@ -520,7 +508,8 @@
 
     <script>
         // ========== CONFIGURATION ==========
-        const API_URL = 'https://portfolio-xqwu.onrender.com/api';
+        // FIXED: https:// थपियो
+        const API_URL = 'https://diplomatic-light-production.up.railway.app/api';
         
         console.log('✅ Admin Login Page Loaded');
         console.log('📍 API URL:', API_URL);
