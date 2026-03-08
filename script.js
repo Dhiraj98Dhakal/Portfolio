@@ -2,10 +2,10 @@
 // script.js - Complete Dynamic Frontend
 // ============================================
 
-// पुरानो Render URL हटाएर नयाँ Railway URL राख्नुहोस्
+// Railway Backend URL (Render बाट Railway मा migrate गरिएको)
 const API_URL = 'https://diplomatic-light-production.up.railway.app/api';
 const BASE_URL = 'https://diplomatic-light-production.up.railway.app';
-const REFRESH_INTERVAL = 30000;
+const REFRESH_INTERVAL = 30000; // 30 seconds
 
 console.log('✅ Frontend JS Loaded');
 console.log('📍 API URL:', API_URL);
@@ -15,22 +15,25 @@ async function loadAllData() {
     try {
         console.log('🔄 Loading data from backend...');
         
-        // Load profile
+        // Load profile data (includes personal info, stats, social links)
         const profileRes = await fetch(`${API_URL}/profile`);
+        if (!profileRes.ok) throw new Error('Profile fetch failed');
         const profile = await profileRes.json();
         updateProfile(profile);
 
-        // Load skills
+        // Load skills data
         const skillsRes = await fetch(`${API_URL}/skills`);
+        if (!skillsRes.ok) throw new Error('Skills fetch failed');
         const skills = await skillsRes.json();
         updateSkills(skills);
 
-        // Load projects
+        // Load projects data
         const projectsRes = await fetch(`${API_URL}/projects`);
+        if (!projectsRes.ok) throw new Error('Projects fetch failed');
         const projects = await projectsRes.json();
         updateProjects(projects);
 
-        // Load testimonials
+        // Load testimonials data (optional - may not exist)
         try {
             const testimonialsRes = await fetch(`${API_URL}/testimonials`);
             if (testimonialsRes.ok) {
@@ -39,84 +42,93 @@ async function loadAllData() {
             } else {
                 console.log('Testimonials endpoint not available');
                 const container = document.getElementById('testimonials-container');
-                if (container) container.innerHTML = '<p class="no-data">Testimonials coming soon</p>';
+                if (container) container.innerHTML = '<p class="no-data">No testimonials yet</p>';
             }
         } catch (error) {
-            console.log('Testimonials not available');
+            console.log('Testimonials not available:', error.message);
         }
 
         console.log('✅ All data loaded at', new Date().toLocaleTimeString());
     } catch (error) {
-        console.log('❌ Backend not connected, using default data');
+        console.log('❌ Backend not connected, using default data:', error.message);
         loadDefaultData();
     }
 }
 
 // ========== UPDATE PROFILE ==========
 function updateProfile(profile) {
-    // Update text elements
+    console.log('📝 Updating profile with:', profile);
+
+    // Update all text elements with data-profile attribute
     document.querySelectorAll('[data-profile]').forEach(el => {
         const key = el.getAttribute('data-profile');
         if (profile[key]) {
             if (el.tagName === 'IMG') {
-                el.src = profile[key].startsWith('http') ? profile[key] : `${BASE_URL}${profile[key]}`;
+                // Handle image elements
+                const imageUrl = profile[key].startsWith('http') 
+                    ? profile[key] 
+                    : profile[key].startsWith('/uploads/') 
+                        ? `${BASE_URL}${profile[key]}` 
+                        : `${BASE_URL}/uploads/${profile[key]}`;
+                
+                console.log(`🖼️ Setting ${key} image:`, imageUrl);
+                el.src = imageUrl;
+                
                 el.onerror = () => {
-                    el.src = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22350%22%20height%3D%22350%22%20viewBox%3D%220%200%20350%20350%22%3E%3Crect%20width%3D%22350%22%20height%3D%22350%22%20fill%3D%22%230a0a0f%22%2F%3E%3Ctext%20x%3D%22175%22%20y%3D%22175%22%20font-family%3D%27Arial%27%20font-size%3D%2224%22%20fill%3D%22%2300f3ff%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3EDD%3C%2Ftext%3E%3C%2Fsvg%3E';
+                    console.log(`❌ Failed to load image: ${imageUrl}`);
+                    el.src = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22350%22%20height%3D%22350%22%20viewBox%3D%220%200%20350%20350%22%3E%3Crect%20width%3D%22350%22%20height%3D%22350%22%20fill%3D%22%230a0a0f%22%2F%3E%3Ctext%20x%3D%22175%22%20y%3D%22175%22%20font-family%3D%27Arial%27%20font-size%3D%2224%22%20fill%3D%22%2300f3ff%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3E' + (profile.initials || 'DD') + '%3C%2Ftext%3E%3C%2Fsvg%3E';
                 };
+                
+                el.onload = () => console.log(`✅ Loaded ${key} image`);
+                
             } else if (el.tagName === 'A' && key.includes('email')) {
+                // Handle email links
                 el.href = `mailto:${profile[key]}`;
                 el.textContent = profile[key];
             } else if (el.tagName === 'A' && key.includes('phone')) {
+                // Handle phone links
                 el.href = `tel:${profile[key]}`;
                 el.textContent = profile[key];
             } else {
+                // Handle text elements
                 el.textContent = profile[key];
             }
         }
     });
 
-    // ========== SOCIAL LINKS UPDATE - FIXED WITH CLICK HANDLER ==========
+    // ========== SOCIAL LINKS UPDATE ==========
     if (profile.socialLinks) {
         console.log('🔗 Updating social links with:', profile.socialLinks);
         
-        // Update all social links in the page
+        // Update all elements with data-social attribute
         document.querySelectorAll('[data-social]').forEach(el => {
             const platform = el.getAttribute('data-social');
             const url = profile.socialLinks[platform];
             
             if (url && url.trim() !== '') {
-                // Set href and attributes
+                // Set href and attributes for clickable links
                 el.href = url;
                 el.setAttribute('target', '_blank');
                 el.setAttribute('rel', 'noopener noreferrer');
                 
-                // Make visible and clickable
+                // Make sure it's visible and clickable
                 el.style.display = 'inline-flex';
                 el.style.pointerEvents = 'auto';
                 el.style.cursor = 'pointer';
                 el.style.opacity = '1';
                 
-                // Remove old click handlers and add new one (ensures click works)
-                el.removeEventListener('click', window.socialClickHandler);
-                el.addEventListener('click', window.socialClickHandler = function(e) {
-                    e.preventDefault();
-                    const url = this.href;
-                    if (url && url !== '#' && url !== '') {
-                        window.open(url, '_blank');
-                    }
-                });
-                
                 console.log(`✅ Set ${platform} to:`, url);
             } else {
                 // Hide if no URL
                 el.style.display = 'none';
-                console.log(`❌ Hidden ${platform}`);
+                console.log(`❌ Hidden ${platform} - no URL`);
             }
         });
     }
 
-    // Update stats
+    // ========== UPDATE STATS ==========
     if (profile.stats) {
+        console.log('📊 Updating stats with:', profile.stats);
         document.querySelectorAll('[data-stat]').forEach(el => {
             const key = el.getAttribute('data-stat');
             if (profile.stats[key]) {
@@ -134,12 +146,17 @@ function updateProfile(profile) {
 // ========== UPDATE TESTIMONIALS ==========
 function updateTestimonials(testimonials) {
     const container = document.getElementById('testimonials-container');
-    if (!container) return;
+    if (!container) {
+        console.log('Testimonials container not found');
+        return;
+    }
 
     if (!testimonials || testimonials.length === 0) {
         container.innerHTML = '<p class="no-data">No testimonials yet</p>';
         return;
     }
+
+    console.log('📝 Updating testimonials:', testimonials.length);
 
     container.innerHTML = testimonials.map(t => `
         <div class="testimonial-card">
@@ -148,7 +165,7 @@ function updateTestimonials(testimonials) {
                 <p>${t.content}</p>
             </div>
             <div class="testimonial-author">
-                ${t.image ? `<img src="${t.image.startsWith('http') ? t.image : BASE_URL + t.image}" alt="${t.name}">` : ''}
+                ${t.image ? `<img src="${t.image.startsWith('http') ? t.image : BASE_URL + t.image}" alt="${t.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/60x60/12121a/00f3ff?text=${t.name.charAt(0)}'">` : ''}
                 <div class="author-info">
                     <h4>${t.name}</h4>
                     <p>${t.position || ''} ${t.company ? `@ ${t.company}` : ''}</p>
@@ -162,12 +179,17 @@ function updateTestimonials(testimonials) {
 // ========== UPDATE SKILLS ==========
 function updateSkills(skills) {
     const container = document.getElementById('skills-container');
-    if (!container) return;
+    if (!container) {
+        console.log('Skills container not found');
+        return;
+    }
 
     if (!skills || skills.length === 0) {
         container.innerHTML = '<p class="no-data">No skills added yet</p>';
         return;
     }
+
+    console.log('📝 Updating skills:', skills.length);
 
     container.innerHTML = skills.map(skill => `
         <div class="skill-card">
@@ -183,58 +205,20 @@ function updateSkills(skills) {
     `).join('');
 }
 
-// ========== FAVICON SETUP ==========
-function setFavicon(iconUrl) {
-    document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]').forEach(el => el.remove());
-    
-    if (iconUrl && iconUrl !== 'null') {
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.type = 'image/png';
-        link.href = iconUrl;
-        document.head.appendChild(link);
-        
-        const appleLink = document.createElement('link');
-        appleLink.rel = 'apple-touch-icon';
-        appleLink.href = iconUrl;
-        document.head.appendChild(appleLink);
-        
-        console.log('✅ Favicon set to:', iconUrl);
-    } else {
-        const link = document.createElement('link');
-        link.rel = 'icon';
-        link.type = 'image/png';
-        link.href = 'icons/favicon.png';
-        document.head.appendChild(link);
-        console.log('✅ Using default favicon');
-    }
-}
-
-async function loadFavicon() {
-    try {
-        const response = await fetch(`${API_URL}/settings`);
-        const settings = await response.json();
-        
-        if (settings && settings.favicon) {
-            setFavicon(`${BASE_URL}${settings.favicon}`);
-        } else {
-            setFavicon('icons/favicon.png');
-        }
-    } catch (error) {
-        console.log('Using default favicon');
-        setFavicon('icons/favicon.png');
-    }
-}
-
 // ========== UPDATE PROJECTS ==========
 function updateProjects(projects) {
     const container = document.getElementById('projects-grid');
-    if (!container) return;
+    if (!container) {
+        console.log('Projects container not found');
+        return;
+    }
 
     if (!projects || projects.length === 0) {
         container.innerHTML = '<p class="no-data">No projects added yet</p>';
         return;
     }
+
+    console.log('📝 Updating projects:', projects.length);
 
     container.innerHTML = projects.map(project => {
         const imageUrl = project.image?.startsWith('http') 
@@ -300,6 +284,50 @@ function initProjectFilters() {
     });
 }
 
+// ========== FAVICON SETUP ==========
+function setFavicon(iconUrl) {
+    document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]').forEach(el => el.remove());
+    
+    if (iconUrl && iconUrl !== 'null') {
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/png';
+        link.href = iconUrl;
+        document.head.appendChild(link);
+        
+        const appleLink = document.createElement('link');
+        appleLink.rel = 'apple-touch-icon';
+        appleLink.href = iconUrl;
+        document.head.appendChild(appleLink);
+        
+        console.log('✅ Favicon set to:', iconUrl);
+    } else {
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/png';
+        link.href = 'icons/favicon.png';
+        document.head.appendChild(link);
+        console.log('✅ Using default favicon');
+    }
+}
+
+async function loadFavicon() {
+    try {
+        const response = await fetch(`${API_URL}/settings`);
+        if (!response.ok) throw new Error('Settings fetch failed');
+        const settings = await response.json();
+        
+        if (settings && settings.favicon) {
+            setFavicon(`${BASE_URL}${settings.favicon}`);
+        } else {
+            setFavicon('icons/favicon.png');
+        }
+    } catch (error) {
+        console.log('Using default favicon:', error.message);
+        setFavicon('icons/favicon.png');
+    }
+}
+
 // ========== CONTACT FORM ==========
 document.getElementById('contact-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -326,21 +354,54 @@ document.getElementById('contact-form')?.addEventListener('submit', async (e) =>
         const data = await response.json();
         
         if (data.success) {
-            alert('Message sent successfully!');
+            alert('✅ Message sent successfully!');
             e.target.reset();
         } else {
-            alert('Error sending message');
+            alert('❌ Error sending message');
         }
     } catch (error) {
-        alert('Error sending message');
+        alert('❌ Error sending message: ' + error.message);
     } finally {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     }
 });
 
-// ========== DEFAULT DATA ==========
+// ========== DEFAULT DATA (when backend not available) ==========
 function loadDefaultData() {
+    console.log('📝 Loading default data');
+    
+    // Default profile data
+    updateProfile({
+        name: 'Dhiraj Dhakal',
+        initials: 'D',
+        badge: 'BICTE Student',
+        bio: 'Crafting digital experiences with code and creativity.',
+        aboutText: 'BICTE student passionate about web development.',
+        email: 'dhiraj@example.com',
+        phone: '+977 9808704655',
+        location: 'Morang, Nepal',
+        country: 'Nepal',
+        education: 'BICTE (2022 - Present)',
+        experience: '2+',
+        contactTitle: "Let's work together",
+        contactText: "I'm always interested in hearing about new opportunities.",
+        stats: {
+            projects: '15+',
+            certificates: '8',
+            clients: '10+',
+            years: '2'
+        },
+        socialLinks: {
+            github: 'https://github.com',
+            linkedin: 'https://linkedin.com',
+            twitter: 'https://twitter.com',
+            instagram: 'https://instagram.com',
+            facebook: '',
+            youtube: ''
+        }
+    });
+
     // Default skills
     updateSkills([
         { name: 'HTML5', level: 95, icon: 'fab fa-html5', color: '#E34F26' },
@@ -354,7 +415,7 @@ function loadDefaultData() {
     updateProjects([
         {
             title: 'Smart Attendance System',
-            description: 'QR code based attendance system',
+            description: 'QR code based attendance system for college students with real-time tracking.',
             technologies: ['React', 'Node.js', 'MongoDB'],
             github: 'https://github.com',
             demo: 'https://demo.com',
@@ -362,11 +423,29 @@ function loadDefaultData() {
         },
         {
             title: 'E-Learning Platform',
-            description: 'Online learning platform',
+            description: 'Modern online learning platform with video courses, quizzes, and progress tracking.',
             technologies: ['Next.js', 'Tailwind', 'Prisma'],
             github: 'https://github.com',
             demo: 'https://demo.com',
             featured: true
+        }
+    ]);
+
+    // Default testimonials
+    updateTestimonials([
+        {
+            name: 'John Doe',
+            position: 'CEO',
+            company: 'Tech Corp',
+            content: 'Dhiraj is an exceptional developer. His work on our project was outstanding!',
+            rating: 5
+        },
+        {
+            name: 'Jane Smith',
+            position: 'Project Manager',
+            company: 'Design Studio',
+            content: 'Working with Dhiraj was a great experience. He delivered beyond expectations.',
+            rating: 5
         }
     ]);
 }
@@ -478,7 +557,7 @@ window.addEventListener('storage', (e) => {
     }
 });
 
-// ========== GLOBAL CLICK HANDLER FOR SOCIAL LINKS ==========
+// ========== GLOBAL CLICK HANDLER FOR SOCIAL LINKS (Backup) ==========
 document.addEventListener('click', function(e) {
     const socialLink = e.target.closest('[data-social]');
     if (socialLink) {
@@ -494,9 +573,13 @@ document.addEventListener('click', function(e) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Portfolio initializing...');
     
+    // Load all data
     loadAllData();
+    
+    // Load favicon
     loadFavicon();
     
+    // Initialize all UI components
     initNavbar();
     initSmoothScroll();
     initBackToTop();
@@ -512,5 +595,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ========== DEBUG ==========
 window.debug = {
     reload: loadAllData,
-    api: API_URL
+    api: API_URL,
+    test: () => {
+        fetch(`${API_URL}/test`).then(r => r.json()).then(console.log);
+    }
 };

@@ -31,7 +31,7 @@ const MessageSchema = new mongoose.Schema({
         default: false 
     }
 }, { 
-    timestamps: true // Automatically adds createdAt and updatedAt
+    timestamps: true 
 });
 
 // Index for better query performance

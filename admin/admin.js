@@ -3,7 +3,7 @@
 // ============================================
 
 // ========== CONFIGURATION ==========
-// पुरानो Render URL हटाएर नयाँ Railway URL राख्नुहोस्
+// Railway Backend URL
 const API_URL = 'https://diplomatic-light-production.up.railway.app/api';
 const BASE_URL = 'https://diplomatic-light-production.up.railway.app';
 const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
@@ -227,25 +227,56 @@ async function loadDashboard() {
     }
 }
 
-// ========== PROFILE ==========
+// ========== PROFILE - UPDATED WITH ABOUT TEXT, EDUCATION & STATS ==========
 async function loadProfile() {
     try {
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
 
+        // Basic info
         document.getElementById('profileName').value = profile.name || '';
         document.getElementById('profileTitle').value = profile.title || '';
         document.getElementById('profileBio').value = profile.bio || '';
+        
+        // About Text (NEW)
+        const aboutTextElement = document.getElementById('profileAboutText');
+        if (aboutTextElement) {
+            aboutTextElement.value = profile.aboutText || 'BICTE student passionate about web development.';
+        }
+        
+        // Contact info
         document.getElementById('profileEmail').value = profile.email || '';
         document.getElementById('profilePhone').value = profile.phone || '';
         document.getElementById('profileLocation').value = profile.location || '';
         document.getElementById('profileCountry').value = profile.country || 'Nepal';
+        
+        // Experience & Initials
         document.getElementById('profileExperience').value = profile.experience || '2+';
         document.getElementById('profileInitials').value = profile.initials || 'D';
+        
+        // Education (NEW)
+        const educationElement = document.getElementById('profileEducation');
+        if (educationElement) {
+            educationElement.value = profile.education || 'BICTE (2022 - Present)';
+        }
 
+        // Stats (for about section)
+        if (profile.stats) {
+            // These are handled by data-stat attributes in frontend
+            console.log('Stats loaded:', profile.stats);
+        }
+
+        // Profile image preview
         if (profile.profileImage) {
             const preview = document.getElementById('profileImagePreview');
             preview.src = profile.profileImage.startsWith('http') ? profile.profileImage : `${BASE_URL}${profile.profileImage}`;
+            preview.style.display = 'block';
+        }
+        
+        // About image preview
+        if (profile.aboutImage) {
+            const preview = document.getElementById('aboutImagePreview');
+            preview.src = profile.aboutImage.startsWith('http') ? profile.aboutImage : `${BASE_URL}${profile.aboutImage}`;
             preview.style.display = 'block';
         }
         
@@ -282,18 +313,34 @@ document.getElementById('aboutImage')?.addEventListener('change', function(e) {
     }
 });
 
-// ========== PROFILE FORM SUBMIT ==========
+// ========== PROFILE FORM SUBMIT - UPDATED ==========
 document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const formData = new FormData();
     
-    const fields = ['name', 'title', 'bio', 'email', 'phone', 'location', 'country', 'experience', 'initials'];
+    // Basic fields
+    const fields = ['name', 'title', 'bio', 'email', 'phone', 'location', 'country', 'experience', 'initials', 'education'];
     fields.forEach(field => {
-        const value = document.getElementById(`profile${field.charAt(0).toUpperCase() + field.slice(1)}`)?.value;
+        const elementId = field === 'education' ? 'profileEducation' : `profile${field.charAt(0).toUpperCase() + field.slice(1)}`;
+        const value = document.getElementById(elementId)?.value;
         if (value) formData.append(field, value);
     });
+    
+    // About Text (NEW)
+    const aboutText = document.getElementById('profileAboutText')?.value;
+    if (aboutText) formData.append('aboutText', aboutText);
 
+    // Stats (for about section)
+    const stats = {
+        projects: document.querySelector('[data-stat="projects"]')?.textContent || '15+',
+        certificates: document.querySelector('[data-stat="certificates"]')?.textContent || '8',
+        clients: document.querySelector('[data-stat="clients"]')?.textContent || '10+',
+        years: document.querySelector('[data-stat="years"]')?.textContent || '2'
+    };
+    formData.append('stats', JSON.stringify(stats));
+
+    // Images
     const profileImg = document.getElementById('profileImage')?.files[0];
     if (profileImg) formData.append('profileImage', profileImg);
     
@@ -606,18 +653,16 @@ window.deleteSkill = async function(id) {
     }
 };
 
-// ========== SOCIAL LINKS - COMPLETE FIX ==========
+// ========== SOCIAL LINKS ==========
 async function loadSocial() {
     try {
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
         
-        // Handle both possible data structures
         const links = profile.socialLinks || profile;
         
         console.log('📥 Loading social links:', links);
 
-        // Set values with proper fallback
         document.getElementById('socialGithub').value = links.github || '';
         document.getElementById('socialLinkedin').value = links.linkedin || '';
         document.getElementById('socialTwitter').value = links.twitter || '';
@@ -663,7 +708,6 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
             showAlert('Social links updated successfully!');
             console.log('✅ Social links update successful:', data.profile?.socialLinks);
             
-            // Update form fields directly from response
             if (data.profile && data.profile.socialLinks) {
                 const updated = data.profile.socialLinks;
                 document.getElementById('socialGithub').value = updated.github || '';
@@ -675,11 +719,9 @@ document.getElementById('socialForm')?.addEventListener('submit', async (e) => {
                 
                 console.log('📥 Updated social links from response:', updated);
             } else {
-                // Fallback to reload if response doesn't contain updated data
                 await loadSocial();
             }
             
-            // Trigger frontend refresh
             localStorage.setItem('adminUpdate', Date.now());
         } else {
             showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
@@ -1079,35 +1121,6 @@ setInterval(() => {
         window.location.href = 'index.html?error=expired';
     }
 }, 60000);
-
-// admin/admin.js
-
-async function updateSocialLinks() {
-    const token = localStorage.getItem('adminToken'); // या login बाट save token
-    const socialLinks = {
-        instagram: document.getElementById('instagramInput').value,
-        twitter: document.getElementById('twitterInput').value
-    };
-
-    try {
-        const res = await fetch('http://localhost:3001/api/profile', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ socialLinks })
-        });
-        const data = await res.json();
-        console.log('Updated profile:', data);
-        alert('Social links updated successfully!');
-    } catch (err) {
-        console.error('Error updating social links:', err);
-    }
-}
-
-// Bind function to form submit or button
-document.getElementById('updateSocialLinksBtn').addEventListener('click', updateSocialLinks);
 
 // ========== INITIALIZATION ==========
 document.addEventListener('DOMContentLoaded', async () => {

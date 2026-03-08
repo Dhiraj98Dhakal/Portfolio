@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
+        /* ===== ALL STYLES REMAIN SAME ===== */
         * {
             margin: 0;
             padding: 0;
@@ -26,7 +27,7 @@
             min-height: 100vh;
         }
 
-        /* ========== SIDEBAR ========== */
+        /* Sidebar */
         .sidebar {
             width: 280px;
             background: #12121a;
@@ -97,14 +98,14 @@
             margin-left: auto;
         }
 
-        /* ========== MAIN CONTENT ========== */
+        /* Main Content */
         .main-content {
             flex: 1;
             margin-left: 280px;
             padding: 30px;
         }
 
-        /* ========== HEADER ========== */
+        /* Header */
         .header {
             background: #12121a;
             padding: 20px 30px;
@@ -156,7 +157,7 @@
             transform: translateY(-2px);
         }
 
-        /* ========== STATS CARDS ========== */
+        /* Stats Cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -202,7 +203,7 @@
             font-size: 0.9rem;
         }
 
-        /* ========== SECTION CARDS ========== */
+        /* Section Cards */
         .section-card {
             background: #12121a;
             border-radius: 15px;
@@ -227,7 +228,7 @@
             gap: 10px;
         }
 
-        /* ========== BUTTONS ========== */
+        /* Buttons */
         .btn {
             padding: 10px 20px;
             border: none;
@@ -269,7 +270,7 @@
             font-size: 0.85rem;
         }
 
-        /* ========== FORMS ========== */
+        /* Forms */
         .form-group {
             margin-bottom: 20px;
         }
@@ -308,7 +309,7 @@
             gap: 20px;
         }
 
-        /* ========== TABLES ========== */
+        /* Tables */
         .table-responsive {
             overflow-x: auto;
         }
@@ -341,7 +342,7 @@
             background: #ff00c81a;
         }
 
-        /* ========== IMAGE PREVIEW ========== */
+        /* Image Preview */
         .image-preview {
             max-width: 100px;
             max-height: 100px;
@@ -359,7 +360,7 @@
             border: 3px solid #ff00c8;
         }
 
-        /* ========== MODAL ========== */
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -418,7 +419,7 @@
             border-top: 2px solid #00f3ff33;
         }
 
-        /* ========== UPLOADS GRID ========== */
+        /* Uploads Grid */
         .uploads-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -448,7 +449,7 @@
             margin-bottom: 10px;
         }
 
-        /* ========== MESSAGE DETAIL ========== */
+        /* Message Detail */
         .message-detail {
             padding: 15px;
         }
@@ -472,7 +473,7 @@
             color: #c0c0ff;
         }
 
-        /* ========== LOADING ========== */
+        /* Loading */
         .loading {
             text-align: center;
             padding: 40px;
@@ -495,7 +496,7 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ========== HIDDEN SECTIONS ========== */
+        /* Hidden Sections */
         .section {
             display: none;
         }
@@ -504,7 +505,7 @@
             display: block;
         }
 
-        /* ========== RESPONSIVE ========== */
+        /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -631,81 +632,100 @@
         </div>
 
         <!-- ===== PROFILE SECTION ===== -->
-        <div id="profile-section" class="section">
-            <div class="section-card">
-                <div class="section-header">
-                    <h3><i class="fas fa-user-circle"></i> Profile Settings</h3>
-                </div>
-
-                <form id="profileForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Full Name</label>
-                            <input type="text" id="profileName" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Professional Title</label>
-                            <input type="text" id="profileTitle" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Bio</label>
-                        <textarea id="profileBio" rows="3" required></textarea>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="profileEmail" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Phone</label>
-                            <input type="text" id="profilePhone" required>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Location</label>
-                            <input type="text" id="profileLocation" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Country</label>
-                            <input type="text" id="profileCountry" value="Nepal">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Experience (Years)</label>
-                            <input type="text" id="profileExperience" value="2+">
-                        </div>
-                        <div class="form-group">
-                            <label>Logo Initials</label>
-                            <input type="text" id="profileInitials" value="D" maxlength="2">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Profile Image</label>
-                            <input type="file" id="profileImage" accept="image/*">
-                            <img id="profileImagePreview" class="avatar-preview" style="display: none;">
-                        </div>
-                        <div class="form-group">
-                            <label>About Image</label>
-                            <input type="file" id="aboutImage" accept="image/*">
-                            <img id="aboutImagePreview" class="image-preview" style="display: none;">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
-                </form>
-            </div>
+       <!-- ===== PROFILE SECTION ===== -->
+<div id="profile-section" class="section">
+    <div class="section-card">
+        <div class="section-header">
+            <h3><i class="fas fa-user-circle"></i> Profile Settings</h3>
         </div>
+
+        <form id="profileForm">
+            <!-- Full Name & Title -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="profileName" required>
+                </div>
+                <div class="form-group">
+                    <label>Professional Title</label>
+                    <input type="text" id="profileTitle" required>
+                </div>
+            </div>
+
+            <!-- Bio (Hero Section) -->
+            <div class="form-group">
+                <label>Bio (Hero Section)</label>
+                <textarea id="profileBio" rows="3" placeholder="Short description for hero section" required></textarea>
+            </div>
+
+            <!-- About Text (NEW) -->
+            <div class="form-group">
+                <label>About Text (About Section)</label>
+                <textarea id="profileAboutText" rows="4" placeholder="Detailed description for about section" required></textarea>
+            </div>
+
+            <!-- Email & Phone -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="profileEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" id="profilePhone" required>
+                </div>
+            </div>
+
+            <!-- Location & Country -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="profileLocation" required>
+                </div>
+                <div class="form-group">
+                    <label>Country</label>
+                    <input type="text" id="profileCountry" value="Nepal">
+                </div>
+            </div>
+
+            <!-- Experience & Initials -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Experience (Years)</label>
+                    <input type="text" id="profileExperience" value="2+">
+                </div>
+                <div class="form-group">
+                    <label>Logo Initials</label>
+                    <input type="text" id="profileInitials" value="D" maxlength="2">
+                </div>
+            </div>
+
+            <!-- Education (NEW) -->
+            <div class="form-group">
+                <label>Education</label>
+                <input type="text" id="profileEducation" value="BICTE (2022 - Present)" placeholder="e.g., BICTE (2022 - Present)">
+            </div>
+
+            <!-- Images -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Profile Image</label>
+                    <input type="file" id="profileImage" accept="image/*">
+                    <img id="profileImagePreview" class="avatar-preview" style="display: none;">
+                </div>
+                <div class="form-group">
+                    <label>About Image</label>
+                    <input type="file" id="aboutImage" accept="image/*">
+                    <img id="aboutImagePreview" class="image-preview" style="display: none;">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </form>
+    </div>
+</div>
 
         <!-- ===== PROJECTS SECTION ===== -->
         <div id="projects-section" class="section">
@@ -1156,7 +1176,7 @@
         </div>
     </div>
 
-    <!-- JavaScript file - सबै logic यहाँ छैन, admin.js मा छ -->
+    <!-- JavaScript file - Make sure this uses the new Railway URL -->
     <script src="admin.js"></script>
 </body>
 </html>

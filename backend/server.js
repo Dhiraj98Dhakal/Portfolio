@@ -1,4 +1,4 @@
-// backend/server.js - FINAL WORKING VERSION
+// backend/server.js - FINAL RAILWAY VERSION
 // ALL PROBLEMS SOLVED - SOCIAL LINKS WORKING
 
 const express = require('express');
@@ -24,13 +24,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// CORS MIDDLEWARE - COMPLETE FIX WITH ALL NETLIFY URLS
+// CORS MIDDLEWARE - COMPLETE FIX WITH ALL NETLIFY & RAILWAY URLS
 // ============================================
 const corsOptions = {
     origin: [
         'https://dhirajdhakal.netlify.app',
         'https://dhirajgg.netlify.app',
         'https://portfolio-xqwu.onrender.com',
+        'https://diplomatic-light-production.up.railway.app', // नयाँ Railway URL
         'http://localhost:3000',
         'http://localhost:3001',
         'http://127.0.0.1:5500',
@@ -660,6 +661,13 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================
+// HEALTH CHECK ENDPOINT (Railway को लागि)
+// ============================================
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'healthy' });
+});
+
+// ============================================
 // START SERVER
 // ============================================
 app.listen(PORT, '0.0.0.0', () => {
@@ -667,8 +675,8 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('✅ SERVER STARTED SUCCESSFULLY');
     console.log('='.repeat(60));
     console.log(`📍 PORT: ${PORT}`);
-    console.log(`📍 URL: https://portfolio-xqwu.onrender.com`);
-    console.log(`📍 Test API: https://portfolio-xqwu.onrender.com/api/test`);
+    console.log(`📍 URL: https://diplomatic-light-production.up.railway.app`);
+    console.log(`📍 Test API: https://diplomatic-light-production.up.railway.app/api/test`);
     console.log('='.repeat(60));
     console.log(`📁 Uploads Directory: ${uploadsDir}`);
     console.log('='.repeat(60));
