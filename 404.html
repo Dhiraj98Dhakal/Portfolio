@@ -6,37 +6,60 @@
     <title>404 - Page Not Found</title>
     <style>
         body {
-            font-family: 'Space Grotesk', sans-serif;
+            font-family: 'Inter', sans-serif;
             background: #0a0a0f;
             color: white;
-            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+            text-align: center;
         }
         .container {
-            text-align: center;
-            background: #12121a;
-            padding: 50px;
-            border-radius: 20px;
-            border: 2px solid #00f3ff;
+            max-width: 500px;
         }
-        h1 { font-size: 4rem; color: #00f3ff; margin: 0; }
-        p { color: #c0c0ff; }
+        h1 {
+            font-size: 5rem;
+            color: #00f3ff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #00f3ff;
+        }
+        h2 {
+            color: #ff00c8;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #c0c0ff;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
         .btn {
-            display: inline-block; padding: 12px 30px;
-            background: transparent; border: 2px solid #00f3ff;
-            color: #00f3ff; text-decoration: none; margin-top: 20px;
+            display: inline-block;
+            padding: 12px 30px;
+            background: transparent;
+            border: 2px solid #00f3ff;
+            color: #00f3ff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
         }
-        .btn:hover { background: #00f3ff; color: #0a0a0f; }
+        .btn:hover {
+            background: #00f3ff;
+            color: #0a0a0f;
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px #00f3ff;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>404</h1>
-        <p>Page Not Found</p>
-        <a href="/" class="btn">Go to Home</a>
+        <h2>Page Not Found</h2>
+        <p>The page you are looking for doesn't exist or has been moved.</p>
+        <a href="/" class="btn">Go Back Home</a>
     </div>
 </body>
 </html>
