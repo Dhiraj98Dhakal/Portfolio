@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Admin Login - Portfolio</title>
     
     <!-- Font Awesome -->
@@ -12,7 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        /* तपाईंको सबै CSS उही रहनेछ */
         * {
             margin: 0;
             padding: 0;
@@ -28,9 +27,10 @@
             justify-content: center;
             padding: 20px;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
+        /* Cyberpunk Grid Background */
         body::before {
             content: '';
             position: absolute;
@@ -51,12 +51,14 @@
             100% { transform: translate(-30%, -30%) rotate(10deg); }
         }
 
+        /* Login Container - Mobile Optimized */
         .login-container {
             width: 100%;
             max-width: 450px;
             position: relative;
             z-index: 1;
             animation: fadeInUp 0.6s ease;
+            margin: 20px auto;
         }
 
         @keyframes fadeInUp {
@@ -70,6 +72,7 @@
             }
         }
 
+        /* Login Card - Mobile Optimized */
         .login-card {
             background: rgba(18, 18, 26, 0.95);
             backdrop-filter: blur(10px);
@@ -81,6 +84,14 @@
             overflow: hidden;
         }
 
+        /* Mobile: Reduce padding */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 25px 20px;
+            }
+        }
+
+        /* Animated Border */
         .login-card::before {
             content: '';
             position: absolute;
@@ -106,6 +117,7 @@
             50% { background-position: 100% 50%; }
         }
 
+        /* Logo */
         .login-header {
             text-align: center;
             margin-bottom: 30px;
@@ -126,6 +138,16 @@
             animation: logoPulse 2s infinite;
         }
 
+        /* Mobile: Smaller logo */
+        @media (max-width: 480px) {
+            .logo {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+                margin-bottom: 15px;
+            }
+        }
+
         @keyframes logoPulse {
             0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(0,243,255,0.5); }
             50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(255,0,200,0.5); }
@@ -140,11 +162,26 @@
             margin-bottom: 10px;
         }
 
+        /* Mobile: Smaller heading */
+        @media (max-width: 480px) {
+            .login-header h2 {
+                font-size: 1.75rem;
+            }
+        }
+
         .login-header p {
             color: #c0c0ff;
             font-size: 0.95rem;
         }
 
+        /* Mobile: Smaller text */
+        @media (max-width: 480px) {
+            .login-header p {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Server Status */
         .server-status {
             display: flex;
             align-items: center;
@@ -179,6 +216,7 @@
             50% { opacity: 0.5; }
         }
 
+        /* Form - Mobile Optimized */
         .form-group {
             margin-bottom: 20px;
             position: relative;
@@ -202,13 +240,15 @@
 
         .form-group input {
             width: 100%;
-            padding: 14px 15px 14px 45px;
+            padding: 14px 45px 14px 45px; /* Right padding for toggle button */
             background: #1a1a2a;
             border: 2px solid #00f3ff33;
             border-radius: 12px;
-            font-size: 1rem;
+            font-size: 16px; /* Prevents zoom on mobile */
             transition: all 0.3s;
             color: white;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .form-group input:focus {
@@ -221,12 +261,52 @@
             color: #c0c0ff66;
         }
 
+        /* Password Toggle Button */
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 42px;
+            color: #c0c0ff;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+            -webkit-tap-highlight-color: transparent;
+            background: none;
+            border: none;
+            z-index: 2;
+        }
+
+        .password-toggle:hover,
+        .password-toggle:active {
+            color: #00f3ff;
+        }
+
+        /* Mobile: Better touch target for inputs */
+        @media (max-width: 768px) {
+            .form-group input {
+                padding: 16px 45px 16px 45px;
+                font-size: 16px;
+            }
+            
+            .form-group .input-icon {
+                top: 48px;
+            }
+            
+            .password-toggle {
+                top: 48px;
+                padding: 5px;
+            }
+        }
+
+        /* Remember & Forgot - Mobile Optimized */
         .remember-forgot {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
             font-size: 0.9rem;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .remember {
@@ -237,8 +317,8 @@
         }
 
         .remember input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             accent-color: #ff00c8;
         }
 
@@ -247,16 +327,19 @@
             text-decoration: none;
             cursor: pointer;
             transition: 0.3s;
+            padding: 8px 0; /* Better touch target */
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .forgot-link:hover {
+        .forgot-link:hover, .forgot-link:active {
             color: #00f3ff;
             text-shadow: 0 0 10px #00f3ff;
         }
 
+        /* Login Button - Mobile Optimized */
         .login-btn {
             width: 100%;
-            padding: 14px;
+            padding: 16px 14px; /* Larger touch target */
             background: linear-gradient(135deg, #00f3ff, #ff00c8);
             color: white;
             border: none;
@@ -271,6 +354,8 @@
             gap: 10px;
             position: relative;
             overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 54px; /* Minimum touch target size */
         }
 
         .login-btn::before {
@@ -286,12 +371,14 @@
             transition: width 0.6s, height 0.6s;
         }
 
-        .login-btn:hover::before {
+        .login-btn:hover::before,
+        .login-btn:active::before {
             width: 300px;
             height: 300px;
         }
 
-        .login-btn:hover {
+        .login-btn:hover,
+        .login-btn:active {
             transform: translateY(-2px);
             box-shadow: 0 0 30px rgba(255, 0, 200, 0.5);
         }
@@ -302,13 +389,15 @@
             transform: none;
         }
 
+        /* Message - Mobile Optimized */
         .message {
             text-align: center;
             margin-top: 20px;
-            padding: 12px;
+            padding: 14px;
             border-radius: 10px;
             font-size: 0.95rem;
             display: none;
+            word-break: break-word;
         }
 
         .message.show {
@@ -345,6 +434,7 @@
             }
         }
 
+        /* Loading Spinner */
         .spinner {
             display: inline-block;
             width: 20px;
@@ -359,41 +449,7 @@
             to { transform: rotate(360deg); }
         }
 
-        .demo-credentials {
-            background: rgba(0, 243, 255, 0.1);
-            border: 1px solid #00f3ff33;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
-            text-align: center;
-            display: none;
-        }
-
-        .demo-credentials.show {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .demo-credentials p {
-            color: #c0c0ff;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-
-        .demo-credentials code {
-            background: #1a1a2a;
-            color: #ff00c8;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.9rem;
-            border: 1px solid #ff00c8;
-        }
-
+        /* Footer Links - Mobile Optimized */
         .footer-links {
             text-align: center;
             margin-top: 20px;
@@ -405,9 +461,13 @@
             font-size: 0.9rem;
             transition: 0.3s;
             margin: 0 10px;
+            padding: 8px 5px; /* Better touch target */
+            display: inline-block;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .footer-links a:hover {
+        .footer-links a:hover,
+        .footer-links a:active {
             color: #00f3ff;
             text-shadow: 0 0 10px #00f3ff;
         }
@@ -416,19 +476,80 @@
             margin-right: 5px;
         }
 
+        /* Mobile: Stack footer links */
         @media (max-width: 480px) {
-            .login-card {
-                padding: 30px 20px;
-            }
-
-            .login-header h2 {
-                font-size: 1.75rem;
-            }
-
-            .remember-forgot {
+            .footer-links {
+                display: flex;
                 flex-direction: column;
                 gap: 10px;
+            }
+            
+            .footer-links a {
+                margin: 0;
+                padding: 10px;
+            }
+        }
+
+        /* Mobile: Adjust spacing */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 10px;
+            }
+            
+            .server-status {
+                padding: 10px;
+                font-size: 0.85rem;
+            }
+            
+            .remember-forgot {
+                flex-direction: column;
                 align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .forgot-link {
+                align-self: flex-start;
+            }
+        }
+
+        /* Small phones */
+        @media (max-width: 360px) {
+            .login-card {
+                padding: 20px 15px;
+            }
+            
+            .login-header h2 {
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                font-size: 1rem;
+            }
+        }
+
+        /* Landscape mode */
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                padding: 10px;
+            }
+            
+            .login-card {
+                padding: 20px;
+            }
+            
+            .logo {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+                margin-bottom: 10px;
+            }
+            
+            .login-header {
+                margin-bottom: 15px;
+            }
+            
+            .form-group {
+                margin-bottom: 10px;
             }
         }
     </style>
@@ -458,7 +579,7 @@
                         <i class="fas fa-user"></i> Username
                     </label>
                     <i class="fas fa-user input-icon"></i>
-                    <input type="text" id="username" placeholder="Enter username" value="admin" autocomplete="off" required>
+                    <input type="text" id="username" placeholder="Enter username" autocomplete="off" required>
                 </div>
 
                 <div class="form-group">
@@ -466,7 +587,8 @@
                         <i class="fas fa-lock"></i> Password
                     </label>
                     <i class="fas fa-lock input-icon"></i>
-                    <input type="password" id="password" placeholder="Enter password" value="admin123" required>
+                    <input type="password" id="password" placeholder="Enter password" required>
+                    <i class="far fa-eye password-toggle" id="togglePassword"></i>
                 </div>
 
                 <div class="remember-forgot">
@@ -474,9 +596,6 @@
                         <input type="checkbox" id="remember" checked>
                         <span>Remember me</span>
                     </label>
-                    <a href="#" class="forgot-link" onclick="toggleDemoCredentials()">
-                        <i class="fas fa-question-circle"></i> Show Credentials
-                    </a>
                 </div>
 
                 <button type="submit" class="login-btn" id="loginBtn">
@@ -487,20 +606,10 @@
                 <div id="message" class="message"></div>
             </form>
 
-            <!-- Demo Credentials -->
-            <div class="demo-credentials" id="demoCredentials">
-                <p><i class="fas fa-info-circle"></i> Demo Credentials:</p>
-                <code>Username: admin</code><br>
-                <code>Password: admin123</code>
-            </div>
-
             <!-- Footer Links -->
             <div class="footer-links">
                 <a href="/" target="_blank">
                     <i class="fas fa-home"></i> Home
-                </a>
-                <a href="#" onclick="toggleDemoCredentials()">
-                    <i class="fas fa-key"></i> Show Credentials
                 </a>
             </div>
         </div>
@@ -508,11 +617,24 @@
 
     <script>
         // ========== CONFIGURATION ==========
-        // FIXED: https:// थपियो
         const API_URL = 'https://diplomatic-light-production.up.railway.app/api';
         
         console.log('✅ Admin Login Page Loaded');
         console.log('📍 API URL:', API_URL);
+
+        // ========== PASSWORD SHOW/HIDE ==========
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        togglePassword.addEventListener('click', function() {
+            // Toggle the type attribute
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Toggle the icon
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
 
         // ========== CHECK SERVER CONNECTION ==========
         async function checkServerConnection() {
@@ -535,12 +657,6 @@
                 return false;
             }
         }
-
-        // ========== TOGGLE DEMO CREDENTIALS ==========
-        window.toggleDemoCredentials = function() {
-            const demoDiv = document.getElementById('demoCredentials');
-            demoDiv.classList.toggle('show');
-        };
 
         // ========== CHECK IF ALREADY LOGGED IN ==========
         function checkLoggedIn() {
@@ -594,7 +710,6 @@
                 console.log('📥 Login response:', data);
 
                 if (data.success) {
-                    // Clear old data
                     localStorage.clear();
                     
                     const loginTime = Date.now();
@@ -659,7 +774,6 @@
             checkLoggedIn();
             checkServerConnection();
             
-            // Check URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const error = urlParams.get('error');
             
@@ -681,7 +795,6 @@
             document.getElementById('remember').checked = true;
         }
 
-        // Save username when login successful (optional)
         function saveUsername(username) {
             if (document.getElementById('remember').checked) {
                 localStorage.setItem('savedUsername', username);
