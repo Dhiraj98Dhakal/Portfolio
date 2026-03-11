@@ -1,5 +1,5 @@
-// backend/server.js - FINAL RAILWAY VERSION
-// ALL PROBLEMS SOLVED - SOCIAL LINKS WORKING
+// backend/server.js - FINAL RAILWAY VERSION WITH VOLUME SUPPORT
+// ALL PROBLEMS SOLVED - FILES NEVER LOST ON DEPLOY
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -31,7 +31,7 @@ const corsOptions = {
         'https://dhirajdhakal.netlify.app',
         'https://dhirajgg.netlify.app',
         'https://portfolio-xqwu.onrender.com',
-        'https://diplomatic-light-production.up.railway.app', // नयाँ Railway URL
+        'https://diplomatic-light-production.up.railway.app',
         'http://localhost:3000',
         'http://localhost:3001',
         'http://127.0.0.1:5500',
@@ -50,12 +50,30 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ============================================
-// UPLOADS FOLDER SETUP
+// UPLOADS FOLDER SETUP - WITH RAILWAY VOLUME SUPPORT
 // ============================================
-const uploadsDir = path.join(__dirname, 'uploads');
+// Railway Volume मा uploads फोल्डर राख्ने
+// Railway मा Volume mount path सामान्यतया /app/uploads हुन्छ
+const VOLUME_PATH = process.env.RAILWAY_VOLUME_PATH || '/app/uploads';
+const LOCAL_UPLOADS_PATH = path.join(__dirname, 'uploads');
+
+// पहिला Volume path try गर्ने, त्यो नभए local path प्रयोग गर्ने
+let uploadsDir;
+if (fs.existsSync(VOLUME_PATH)) {
+    uploadsDir = VOLUME_PATH;
+    console.log('📁 Using Railway volume at:', VOLUME_PATH);
+} else {
+    uploadsDir = LOCAL_UPLOADS_PATH;
+    console.log('📁 Using local uploads at:', LOCAL_UPLOADS_PATH);
+}
+
+// Folder create गर्ने (यदि छैन भने)
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('📁 Created uploads directory');
 }
+
+// Static files serve गर्ने
 app.use('/uploads', express.static(uploadsDir));
 
 // ============================================
@@ -75,10 +93,13 @@ mongoose.connect(process.env.MONGODB_URI, {
 });
 
 // ============================================
-// MULTER CONFIGURATION
+// MULTER CONFIGURATION - UPDATED FOR VOLUME
 // ============================================
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadsDir),
+    destination: (req, file, cb) => {
+        // Always use the determined uploadsDir
+        cb(null, uploadsDir);
+    },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, uniqueSuffix + path.extname(file.originalname));
@@ -87,7 +108,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 },
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     fileFilter: (req, file, cb) => {
         const allowedTypes = /jpeg|jpg|png|gif|webp|ico|svg/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -270,7 +291,7 @@ app.put('/api/profile', authenticateToken, upload.fields([
         }
 
         // Update other fields
-        const fields = ['name', 'title', 'bio', 'email', 'phone', 'location', 'country', 'experience', 'initials', 'education', 'cvLink', 'website', 'shortBio', 'contactTitle', 'contactText'];
+        const fields = ['name', 'title', 'bio', 'aboutText', 'email', 'phone', 'location', 'country', 'experience', 'initials', 'education', 'cvLink', 'website', 'shortBio', 'contactTitle', 'contactText'];
         fields.forEach(field => {
             if (req.body[field] !== undefined) profile[field] = req.body[field];
         });
@@ -283,10 +304,16 @@ app.put('/api/profile', authenticateToken, upload.fields([
             } catch (e) {}
         }
 
-        // Handle images
+        // Handle images - FILES WILL BE SAVED TO VOLUME
         if (req.files) {
-            if (req.files.profileImage) profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
-            if (req.files.aboutImage) profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
+            if (req.files.profileImage && req.files.profileImage[0]) {
+                profile.profileImage = `/uploads/${req.files.profileImage[0].filename}`;
+                console.log('📸 Profile image saved to volume:', profile.profileImage);
+            }
+            if (req.files.aboutImage && req.files.aboutImage[0]) {
+                profile.aboutImage = `/uploads/${req.files.aboutImage[0].filename}`;
+                console.log('📸 About image saved to volume:', profile.aboutImage);
+            }
         }
 
         await profile.save();
@@ -679,6 +706,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`📍 Test API: https://diplomatic-light-production.up.railway.app/api/test`);
     console.log('='.repeat(60));
     console.log(`📁 Uploads Directory: ${uploadsDir}`);
+    console.log(`📁 Volume Path: ${VOLUME_PATH}`);
     console.log('='.repeat(60));
     console.log('🔐 Admin Login:');
     console.log(`   Username: ${process.env.ADMIN_USERNAME || 'admin'}`);

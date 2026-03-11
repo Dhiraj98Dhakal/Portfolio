@@ -2,7 +2,7 @@
 // script.js - Complete Dynamic Frontend
 // ============================================
 
-// Railway Backend URL (Render बाट Railway मा migrate गरिएको)
+// Railway Backend URL
 const API_URL = 'https://diplomatic-light-production.up.railway.app/api';
 const BASE_URL = 'https://diplomatic-light-production.up.railway.app';
 const REFRESH_INTERVAL = 30000; // 30 seconds
@@ -15,10 +15,11 @@ async function loadAllData() {
     try {
         console.log('🔄 Loading data from backend...');
         
-        // Load profile data (includes personal info, stats, social links)
+        // Load profile data
         const profileRes = await fetch(`${API_URL}/profile`);
         if (!profileRes.ok) throw new Error('Profile fetch failed');
         const profile = await profileRes.json();
+        console.log('📥 Profile data received:', profile);
         updateProfile(profile);
 
         // Load skills data
@@ -33,7 +34,7 @@ async function loadAllData() {
         const projects = await projectsRes.json();
         updateProjects(projects);
 
-        // Load testimonials data (optional - may not exist)
+        // Load testimonials data
         try {
             const testimonialsRes = await fetch(`${API_URL}/testimonials`);
             if (testimonialsRes.ok) {
@@ -58,11 +59,14 @@ async function loadAllData() {
 // ========== UPDATE PROFILE ==========
 function updateProfile(profile) {
     console.log('📝 Updating profile with:', profile);
+    console.log('📝 About Text from profile:', profile.aboutText); // Debug for aboutText
 
     // Update all text elements with data-profile attribute
     document.querySelectorAll('[data-profile]').forEach(el => {
         const key = el.getAttribute('data-profile');
         if (profile[key]) {
+            console.log(`🔍 Found element with data-profile="${key}"`); // Debug
+            
             if (el.tagName === 'IMG') {
                 // Handle image elements
                 const imageUrl = profile[key].startsWith('http') 
@@ -90,9 +94,14 @@ function updateProfile(profile) {
                 el.href = `tel:${profile[key]}`;
                 el.textContent = profile[key];
             } else {
-                // Handle text elements
+                // Handle text elements - THIS INCLUDES aboutText
+                const oldText = el.textContent;
                 el.textContent = profile[key];
+                console.log(`✅ Updated ${key}: "${oldText}" -> "${profile[key]}"`); // Debug
             }
+        } else {
+            // If profile[key] doesn't exist, element might need default value
+            console.log(`⚠️ No value in profile for data-profile="${key}"`);
         }
     });
 
@@ -367,7 +376,7 @@ document.getElementById('contact-form')?.addEventListener('submit', async (e) =>
     }
 });
 
-// ========== DEFAULT DATA (when backend not available) ==========
+// ========== DEFAULT DATA ==========
 function loadDefaultData() {
     console.log('📝 Loading default data');
     
@@ -557,7 +566,7 @@ window.addEventListener('storage', (e) => {
     }
 });
 
-// ========== GLOBAL CLICK HANDLER FOR SOCIAL LINKS (Backup) ==========
+// ========== GLOBAL CLICK HANDLER FOR SOCIAL LINKS ==========
 document.addEventListener('click', function(e) {
     const socialLink = e.target.closest('[data-social]');
     if (socialLink) {

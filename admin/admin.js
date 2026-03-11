@@ -227,21 +227,26 @@ async function loadDashboard() {
     }
 }
 
-// ========== PROFILE - UPDATED WITH ABOUT TEXT, EDUCATION & STATS ==========
+// ========== PROFILE - FIXED VERSION WITH ABOUT TEXT ==========
 async function loadProfile() {
     try {
+        console.log('📥 Loading profile...');
         const response = await fetch(`${API_URL}/profile`);
         const profile = await response.json();
+        console.log('📥 Profile loaded:', profile);
 
         // Basic info
         document.getElementById('profileName').value = profile.name || '';
         document.getElementById('profileTitle').value = profile.title || '';
         document.getElementById('profileBio').value = profile.bio || '';
         
-        // About Text (NEW)
+        // About Text - CRITICAL FIX
         const aboutTextElement = document.getElementById('profileAboutText');
         if (aboutTextElement) {
             aboutTextElement.value = profile.aboutText || 'BICTE student passionate about web development.';
+            console.log('📝 About Text loaded:', aboutTextElement.value);
+        } else {
+            console.warn('⚠️ profileAboutText element not found');
         }
         
         // Contact info
@@ -254,34 +259,35 @@ async function loadProfile() {
         document.getElementById('profileExperience').value = profile.experience || '2+';
         document.getElementById('profileInitials').value = profile.initials || 'D';
         
-        // Education (NEW)
+        // Education
         const educationElement = document.getElementById('profileEducation');
         if (educationElement) {
             educationElement.value = profile.education || 'BICTE (2022 - Present)';
         }
 
-        // Stats (for about section)
-        if (profile.stats) {
-            // These are handled by data-stat attributes in frontend
-            console.log('Stats loaded:', profile.stats);
-        }
-
         // Profile image preview
         if (profile.profileImage) {
             const preview = document.getElementById('profileImagePreview');
-            preview.src = profile.profileImage.startsWith('http') ? profile.profileImage : `${BASE_URL}${profile.profileImage}`;
+            const imageUrl = profile.profileImage.startsWith('http') 
+                ? profile.profileImage 
+                : `${BASE_URL}${profile.profileImage}`;
+            preview.src = imageUrl;
             preview.style.display = 'block';
+            console.log('🖼️ Profile image loaded:', imageUrl);
         }
         
         // About image preview
         if (profile.aboutImage) {
             const preview = document.getElementById('aboutImagePreview');
-            preview.src = profile.aboutImage.startsWith('http') ? profile.aboutImage : `${BASE_URL}${profile.aboutImage}`;
+            const imageUrl = profile.aboutImage.startsWith('http') 
+                ? profile.aboutImage 
+                : `${BASE_URL}${profile.aboutImage}`;
+            preview.src = imageUrl;
             preview.style.display = 'block';
         }
         
     } catch (error) {
-        console.error('Error loading profile:', error);
+        console.error('❌ Error loading profile:', error);
         showAlert('Error loading profile', 'error');
     }
 }
@@ -313,7 +319,7 @@ document.getElementById('aboutImage')?.addEventListener('change', function(e) {
     }
 });
 
-// ========== PROFILE FORM SUBMIT - UPDATED ==========
+// ========== PROFILE FORM SUBMIT - FIXED VERSION ==========
 document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -323,29 +329,48 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
     const fields = ['name', 'title', 'bio', 'email', 'phone', 'location', 'country', 'experience', 'initials', 'education'];
     fields.forEach(field => {
         const elementId = field === 'education' ? 'profileEducation' : `profile${field.charAt(0).toUpperCase() + field.slice(1)}`;
-        const value = document.getElementById(elementId)?.value;
-        if (value) formData.append(field, value);
+        const element = document.getElementById(elementId);
+        if (element && element.value) {
+            formData.append(field, element.value);
+            console.log(`📝 ${field}:`, element.value);
+        }
     });
     
-    // About Text (NEW)
-    const aboutText = document.getElementById('profileAboutText')?.value;
-    if (aboutText) formData.append('aboutText', aboutText);
+    // About Text - CRITICAL FIX
+    const aboutTextElement = document.getElementById('profileAboutText');
+    if (aboutTextElement && aboutTextElement.value) {
+        formData.append('aboutText', aboutTextElement.value);
+        console.log('📝 About Text being sent:', aboutTextElement.value);
+    } else {
+        console.warn('⚠️ About Text element not found or empty');
+    }
 
     // Stats (for about section)
-    const stats = {
-        projects: document.querySelector('[data-stat="projects"]')?.textContent || '15+',
-        certificates: document.querySelector('[data-stat="certificates"]')?.textContent || '8',
-        clients: document.querySelector('[data-stat="clients"]')?.textContent || '10+',
-        years: document.querySelector('[data-stat="years"]')?.textContent || '2'
-    };
-    formData.append('stats', JSON.stringify(stats));
+    try {
+        const stats = {
+            projects: document.querySelector('[data-stat="projects"]')?.textContent || '15+',
+            certificates: document.querySelector('[data-stat="certificates"]')?.textContent || '8',
+            clients: document.querySelector('[data-stat="clients"]')?.textContent || '10+',
+            years: document.querySelector('[data-stat="years"]')?.textContent || '2'
+        };
+        formData.append('stats', JSON.stringify(stats));
+        console.log('📊 Stats:', stats);
+    } catch (e) {
+        console.warn('Stats not available');
+    }
 
     // Images
     const profileImg = document.getElementById('profileImage')?.files[0];
-    if (profileImg) formData.append('profileImage', profileImg);
+    if (profileImg) {
+        formData.append('profileImage', profileImg);
+        console.log('🖼️ Profile image selected:', profileImg.name);
+    }
     
     const aboutImg = document.getElementById('aboutImage')?.files[0];
-    if (aboutImg) formData.append('aboutImage', aboutImg);
+    if (aboutImg) {
+        formData.append('aboutImage', aboutImg);
+        console.log('🖼️ About image selected:', aboutImg.name);
+    }
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
@@ -353,22 +378,35 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
     submitBtn.disabled = true;
 
     try {
+        console.log('📤 Sending profile update...');
         const response = await fetchWithAuth(`${API_URL}/profile`, {
             method: 'PUT',
             body: formData
         });
 
         const data = await response.json();
+        console.log('📥 Profile update response:', data);
         
         if (data.success) {
             showAlert('Profile updated successfully!');
+            
+            // Update image preview if new image was uploaded
+            if (data.profile && data.profile.profileImage) {
+                const preview = document.getElementById('profileImagePreview');
+                const imageUrl = data.profile.profileImage.startsWith('http') 
+                    ? data.profile.profileImage 
+                    : `${BASE_URL}${data.profile.profileImage}`;
+                preview.src = imageUrl;
+                preview.style.display = 'block';
+            }
+            
             localStorage.setItem('adminUpdate', Date.now());
         } else {
             showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
         }
     } catch (error) {
-        showAlert('Error updating profile', 'error');
-        console.error(error);
+        console.error('❌ Profile update error:', error);
+        showAlert('Error updating profile: ' + error.message, 'error');
     } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
