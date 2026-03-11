@@ -56,34 +56,66 @@ async function loadAllData() {
     }
 }
 
-// ========== UPDATE PROFILE ==========
+// ========== UPDATE PROFILE - FIXED IMAGE HANDLING ==========
 function updateProfile(profile) {
     console.log('📝 Updating profile with:', profile);
-    console.log('📝 About Text from profile:', profile.aboutText); // Debug for aboutText
+    console.log('📝 About Text from profile:', profile.aboutText);
+    console.log('📸 Profile image from API:', profile.profileImage);
 
     // Update all text elements with data-profile attribute
     document.querySelectorAll('[data-profile]').forEach(el => {
         const key = el.getAttribute('data-profile');
+        
         if (profile[key]) {
-            console.log(`🔍 Found element with data-profile="${key}"`); // Debug
+            console.log(`🔍 Found element with data-profile="${key}"`);
             
             if (el.tagName === 'IMG') {
-                // Handle image elements
-                const imageUrl = profile[key].startsWith('http') 
-                    ? profile[key] 
-                    : profile[key].startsWith('/uploads/') 
-                        ? `${BASE_URL}${profile[key]}` 
-                        : `${BASE_URL}/uploads/${profile[key]}`;
+                // ===== IMAGE HANDLING - FIXED VERSION =====
+                let imageUrl = null;
                 
-                console.log(`🖼️ Setting ${key} image:`, imageUrl);
-                el.src = imageUrl;
+                // Construct proper image URL
+                if (profile[key]) {
+                    if (profile[key].startsWith('http')) {
+                        // Full URL already
+                        imageUrl = profile[key];
+                    } else if (profile[key].startsWith('/uploads/')) {
+                        // Starts with /uploads/
+                        imageUrl = `${BASE_URL}${profile[key]}`;
+                    } else {
+                        // Just filename
+                        imageUrl = `${BASE_URL}/uploads/${profile[key]}`;
+                    }
+                }
                 
-                el.onerror = () => {
-                    console.log(`❌ Failed to load image: ${imageUrl}`);
-                    el.src = 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22350%22%20height%3D%22350%22%20viewBox%3D%220%200%20350%20350%22%3E%3Crect%20width%3D%22350%22%20height%3D%22350%22%20fill%3D%22%230a0a0f%22%2F%3E%3Ctext%20x%3D%22175%22%20y%3D%22175%22%20font-family%3D%27Arial%27%20font-size%3D%2224%22%20fill%3D%22%2300f3ff%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%3E' + (profile.initials || 'DD') + '%3C%2Ftext%3E%3C%2Fsvg%3E';
-                };
-                
-                el.onload = () => console.log(`✅ Loaded ${key} image`);
+                if (imageUrl) {
+                    console.log(`🖼️ Setting ${key} image URL:`, imageUrl);
+                    
+                    // Test if image loads
+                    const img = new Image();
+                    img.onload = () => {
+                        el.src = imageUrl;
+                        el.style.display = 'block';
+                        console.log(`✅ ${key} image loaded successfully`);
+                    };
+                    img.onerror = () => {
+                        console.error(`❌ Failed to load ${key} image:`, imageUrl);
+                        // Fallback to local image
+                        if (key === 'profileImage') {
+                            el.src = 'images/profile.jpg';
+                        } else if (key === 'aboutImage') {
+                            el.src = 'images/about.jpg';
+                        }
+                        el.style.display = 'block';
+                    };
+                    img.src = imageUrl;
+                } else {
+                    console.log(`⚠️ No image for ${key}, using fallback`);
+                    if (key === 'profileImage') {
+                        el.src = 'images/profile.jpg';
+                    } else if (key === 'aboutImage') {
+                        el.src = 'images/about.jpg';
+                    }
+                }
                 
             } else if (el.tagName === 'A' && key.includes('email')) {
                 // Handle email links
@@ -94,13 +126,12 @@ function updateProfile(profile) {
                 el.href = `tel:${profile[key]}`;
                 el.textContent = profile[key];
             } else {
-                // Handle text elements - THIS INCLUDES aboutText
+                // Handle text elements
                 const oldText = el.textContent;
                 el.textContent = profile[key];
-                console.log(`✅ Updated ${key}: "${oldText}" -> "${profile[key]}"`); // Debug
+                console.log(`✅ Updated ${key}: "${oldText}" -> "${profile[key]}"`);
             }
         } else {
-            // If profile[key] doesn't exist, element might need default value
             console.log(`⚠️ No value in profile for data-profile="${key}"`);
         }
     });

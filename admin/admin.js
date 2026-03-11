@@ -240,7 +240,7 @@ async function loadProfile() {
         document.getElementById('profileTitle').value = profile.title || '';
         document.getElementById('profileBio').value = profile.bio || '';
         
-        // About Text - CRITICAL FIX
+        // About Text
         const aboutTextElement = document.getElementById('profileAboutText');
         if (aboutTextElement) {
             aboutTextElement.value = profile.aboutText || 'BICTE student passionate about web development.';
@@ -265,25 +265,55 @@ async function loadProfile() {
             educationElement.value = profile.education || 'BICTE (2022 - Present)';
         }
 
-        // Profile image preview
+        // ===== PROFILE IMAGE PREVIEW - FIXED =====
         if (profile.profileImage) {
             const preview = document.getElementById('profileImagePreview');
-            const imageUrl = profile.profileImage.startsWith('http') 
-                ? profile.profileImage 
-                : `${BASE_URL}${profile.profileImage}`;
-            preview.src = imageUrl;
-            preview.style.display = 'block';
-            console.log('🖼️ Profile image loaded:', imageUrl);
+            let imageUrl;
+            
+            if (profile.profileImage.startsWith('http')) {
+                imageUrl = profile.profileImage;
+            } else if (profile.profileImage.startsWith('/uploads/')) {
+                imageUrl = `${BASE_URL}${profile.profileImage}`;
+            } else {
+                imageUrl = `${BASE_URL}/uploads/${profile.profileImage}`;
+            }
+            
+            console.log('🖼️ Profile image URL:', imageUrl);
+            
+            // Test if image loads
+            const img = new Image();
+            img.onload = () => {
+                preview.src = imageUrl;
+                preview.style.display = 'block';
+                console.log('✅ Profile image loaded successfully');
+            };
+            img.onerror = () => {
+                console.error('❌ Failed to load profile image:', imageUrl);
+                preview.style.display = 'none';
+            };
+            img.src = imageUrl;
+        } else {
+            console.log('⚠️ No profile image in database');
+            document.getElementById('profileImagePreview').style.display = 'none';
         }
         
         // About image preview
         if (profile.aboutImage) {
             const preview = document.getElementById('aboutImagePreview');
-            const imageUrl = profile.aboutImage.startsWith('http') 
-                ? profile.aboutImage 
-                : `${BASE_URL}${profile.aboutImage}`;
+            let imageUrl;
+            
+            if (profile.aboutImage.startsWith('http')) {
+                imageUrl = profile.aboutImage;
+            } else if (profile.aboutImage.startsWith('/uploads/')) {
+                imageUrl = `${BASE_URL}${profile.aboutImage}`;
+            } else {
+                imageUrl = `${BASE_URL}/uploads/${profile.aboutImage}`;
+            }
+            
             preview.src = imageUrl;
             preview.style.display = 'block';
+        } else {
+            document.getElementById('aboutImagePreview').style.display = 'none';
         }
         
     } catch (error) {
@@ -301,6 +331,7 @@ document.getElementById('profileImage')?.addEventListener('change', function(e) 
             const preview = document.getElementById('profileImagePreview');
             preview.src = e.target.result;
             preview.style.display = 'block';
+            console.log('🖼️ Profile image preview updated');
         };
         reader.readAsDataURL(file);
     }
@@ -314,12 +345,13 @@ document.getElementById('aboutImage')?.addEventListener('change', function(e) {
             const preview = document.getElementById('aboutImagePreview');
             preview.src = e.target.result;
             preview.style.display = 'block';
+            console.log('🖼️ About image preview updated');
         };
         reader.readAsDataURL(file);
     }
 });
 
-// ========== PROFILE FORM SUBMIT - FIXED VERSION ==========
+// ========== PROFILE FORM SUBMIT - FIXED WITH AUTO REFRESH ==========
 document.getElementById('profileForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -336,16 +368,14 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
         }
     });
     
-    // About Text - CRITICAL FIX
+    // About Text
     const aboutTextElement = document.getElementById('profileAboutText');
     if (aboutTextElement && aboutTextElement.value) {
         formData.append('aboutText', aboutTextElement.value);
         console.log('📝 About Text being sent:', aboutTextElement.value);
-    } else {
-        console.warn('⚠️ About Text element not found or empty');
     }
 
-    // Stats (for about section)
+    // Stats
     try {
         const stats = {
             projects: document.querySelector('[data-stat="projects"]')?.textContent || '15+',
@@ -390,17 +420,32 @@ document.getElementById('profileForm')?.addEventListener('submit', async (e) => 
         if (data.success) {
             showAlert('Profile updated successfully!');
             
+            // ===== CRITICAL: Trigger frontend refresh =====
+            localStorage.setItem('adminUpdate', Date.now().toString());
+            
             // Update image preview if new image was uploaded
             if (data.profile && data.profile.profileImage) {
                 const preview = document.getElementById('profileImagePreview');
-                const imageUrl = data.profile.profileImage.startsWith('http') 
-                    ? data.profile.profileImage 
-                    : `${BASE_URL}${data.profile.profileImage}`;
+                let imageUrl;
+                
+                if (data.profile.profileImage.startsWith('http')) {
+                    imageUrl = data.profile.profileImage;
+                } else if (data.profile.profileImage.startsWith('/uploads/')) {
+                    imageUrl = `${BASE_URL}${data.profile.profileImage}`;
+                } else {
+                    imageUrl = `${BASE_URL}/uploads/${data.profile.profileImage}`;
+                }
+                
                 preview.src = imageUrl;
                 preview.style.display = 'block';
+                console.log('🖼️ Profile image preview updated from response:', imageUrl);
             }
             
-            localStorage.setItem('adminUpdate', Date.now());
+            // Optional: Refresh the current section to show updated data
+            setTimeout(() => {
+                loadProfile(); // Reload profile data
+            }, 500);
+            
         } else {
             showAlert('Error: ' + (data.message || 'Unknown error'), 'error');
         }
